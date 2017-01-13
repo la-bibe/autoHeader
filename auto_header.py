@@ -4,14 +4,23 @@ import sys
 import os
 import re
 
-output = "output/"
+output = "include/"
+includeFile = "includes.config"
+
+class colors:
+    GREEN = "\033[92m"
+    YELLOW = "\033[93m"
+    RED = "\033[91m"
+    BOLD = "\033[1m"
+    UNDERLINE = "\033[4m"
+    DEFAULT = "\033[0m"
 
 def error_args():
-    print("Incorrect number of arguments")
+    print(colors.RED + "Incorrect number of arguments" + colors.DEFAULT)
     sys.exit(84)
 
 def error_file(name):
-    print("Error while opening the file: \"" + name + "\"")
+    print(colors.RED + "Error while opening the file: \"" + name + "\"" + colors.DEFAULT)
 
 # Check arguments
 if len(sys.argv) < 2:
@@ -30,6 +39,7 @@ cregSpace = re.compile(" ")
 functions = []
 functionNames = []
 usedFuncsPerFile = {}
+includes = {}
 
 def addFunction(function):
     function = cregArgNameComma.sub(",", function)
@@ -54,7 +64,7 @@ def alignFunctions():
 def analizeFile(fileName):
     print ("Analysing \"" + fileName + "\"")
     try:
-        file = open(fileName, 'r')
+        file = open(fileName, "r")
         data = file.read()
         file.close()
     except:
@@ -81,12 +91,25 @@ for fileName in fileNames:
     if (fileName.endswith(".c")):
         analizeFile(fileName)
 
+
+
 print ("Aligning the functions")
 alignFunctions()
-print ("Done")
 print ("Creating the output folder")
 if not os.path.exists(output):
     os.makedirs(output)
+print ("Opening the " + includeFile + " file")
+try:
+    config = open(includeFile, "r")
+    data = config.read()
+    config.close()
+    data = cregSpaces.sub("", data)
+    sepInc = data.split("-")
+    for inc in sepInc:
+        inc = inc.split(":")
+        includes[inc[0]] = inc[1]
+except:
+    print (colors.YELLOW + "Warning: no config file found, you should add one" + colors.DEFAULT)
 print ("Creating the files")
 for fileName, funcs in usedFuncsPerFile.items():
     if funcs:
@@ -94,8 +117,26 @@ for fileName, funcs in usedFuncsPerFile.items():
         print ("Creating \"" + tempName + "\"")
         file = open(tempName, "w")
         addDblIncSec(file, tempName)
+        neededIncludes = []
+        for func in funcs:
+            if not func in functionNames:
+                found = 0
+                for key, value in includes.items():
+                    if func in value.split(";"):
+                        found = 1
+                        if key != "void":
+                            neededIncludes.append(key)
+                if found == 0:
+                    print (colors.YELLOW + "Warning: function \"" + func + "\" not found in the config file" + colors.DEFAULT)
+        neededIncludes = list(set(neededIncludes))
+        for inc in neededIncludes:
+            file.write("#  include <" + inc + ">\n")
+        if neededIncludes:
+            file.write("\n")
         for func in funcs:
             if func in functionNames:
                 file.write(functions[functionNames.index(func)] + ";\n")
+
         file.write("\n#endif")
         file.close()
+print ("Done")
