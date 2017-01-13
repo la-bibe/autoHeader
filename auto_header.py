@@ -1,7 +1,10 @@
 #!/usr/bin/python3
 
 import sys
+import os
 import re
+
+output = "output/"
 
 def error_args():
     print("Incorrect number of arguments")
@@ -53,6 +56,7 @@ def analizeFile(fileName):
     try:
         file = open(fileName, 'r')
         data = file.read()
+        file.close()
     except:
         error_file(fileName)
         return
@@ -67,6 +71,9 @@ def analizeFile(fileName):
         localUsedFuncs.remove(function)
     usedFuncsPerFile[fileName] = localUsedFuncs
 
+def addDblIncSec(file, name):
+    name = name.split("/")[-1].upper().replace(".", "_") + "_"
+    file.write("#ifndef " + name + "\n" + "#  define " + name + "\n\n")
 
 fileNames = iter(sys.argv)
 next(fileNames)
@@ -77,16 +84,18 @@ for fileName in fileNames:
 print ("Aligning the functions")
 alignFunctions()
 print ("Done")
-print ("\nPrototypes:\n")
-print ('\n'.join(functions))
-print ("\nNames:\n")
-print ('\n'.join(functionNames))
-print ("\nDefinition of needs for each file:")
-for file, funcs in usedFuncsPerFile.items():
-    print ("\n");
-    print (file + ":");
-    for func in funcs:
-        if func in functionNames:
-            print ("Defined:\t" + functions[functionNames.index(func)])
-        else:
-            print ("Not defined:\t" + func)
+print ("Creating the output folder")
+if not os.path.exists(output):
+    os.makedirs(output)
+print ("Creating the files")
+for fileName, funcs in usedFuncsPerFile.items():
+    if funcs:
+        tempName = output + fileName.split("/")[-1].replace(".c", ".h")
+        print ("Creating \"" + tempName + "\"")
+        file = open(tempName, "w")
+        addDblIncSec(file, tempName)
+        for func in funcs:
+            if func in functionNames:
+                file.write(functions[functionNames.index(func)] + ";\n")
+        file.write("\n#endif")
+        file.close()
