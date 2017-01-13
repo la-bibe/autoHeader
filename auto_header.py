@@ -29,7 +29,7 @@ if len(sys.argv) < 2:
 # Try to open the file
 
 # Regexes
-regFunFull = "^[A-Za-z0-9_]+[ \t\*]+[A-Za-z0-9_]+\(([A-Za-z0-9_]*[ \*]*[A-Za-z0-9_]*,[ \*\n\t]*)*([A-Za-z0-9_]*[ \*]*[A-Za-z0-9_]*)?\)$"
+regFunFull = "^[A-Za-z0-9_]+[ \t\*]+[A-Za-z0-9_]+\(([A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*,[ \*\n\t]*)*([A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*)?\)$"
 regFunCalled = "[A-Za-z0-9_]+\("
 cregArgNameComma = re.compile("[ ]*[A-Za-z0-9_]+,")
 cregArgNamePar = re.compile("[ ]*[A-Za-z0-9_]+\)")
