@@ -15,11 +15,14 @@ import os
 import re
 
 configFile = "general.conf"
+version = "0.4.2"
 
 class colors:
     GREEN = "\033[92m"
     YELLOW = "\033[93m"
     RED = "\033[91m"
+    BLUE = "\033[34m"
+    CYAN = "\033[96m"
     BOLD = "\033[1m"
     UNDERLINE = "\033[4m"
     DEFAULT = "\033[0m"
@@ -30,6 +33,43 @@ def error_args():
 
 def error_file(name):
     print(colors.RED + "Error while opening the file: \"" + name + "\"" + colors.DEFAULT)
+
+def showOk():
+    print (colors.GREEN + " -> Ok" + colors.DEFAULT)
+
+def showError():
+    print (colors.YELLOW + " -> Error" + colors.DEFAULT)
+
+def printRed(text):
+    print (colors.RED + text + colors.DEFAULT)
+
+def printGreen(text):
+    print (colors.GREEN + text + colors.DEFAULT)
+
+def printBlue(text):
+    print (colors.BLUE + text + colors.DEFAULT)
+
+def printYellow(text):
+    print (colors.YELLOW + text + colors.DEFAULT)
+
+def showHeader():
+    os.system("clear")
+    print ("  #########################################################  ")
+    print (" ##" + colors.RED + "              _        _    _                _         " + colors.DEFAULT + "## ")
+    print ("##" + colors.RED + "    /\        | |      | |  | |              | |         " + colors.DEFAULT + "##")
+    print ("#" + colors.RED + "    /  \  _   _| |_ ___ | |__| | ___  __ _  __| | ___ _ __ " + colors.DEFAULT + "#")
+    print ("#" + colors.RED + "   / /\ \| | | | __/ _ \|  __  |/ _ \/ _` |/ _` |/ _ \ '__|" + colors.DEFAULT + "#")
+    print ("#" + colors.RED + "  / ____ \ |_| | || (_) | |  | |  __/ (_| | (_| |  __/ |   " + colors.DEFAULT + "#")
+    print ("#" + colors.RED + " /_/    \_\__,_|\__\___/|_|  |_|\___|\__,_|\__,_|\___|_|   " + colors.DEFAULT + "#")
+    print ("#                                                           #")
+    print ("#############################################################")
+    print ("#  " + colors.CYAN + "Created by Fantin Bibas                   fantin@bib.as" + colors.DEFAULT + "  #")
+    print ("#               " + colors.CYAN + "\"Neodar\"" + colors.DEFAULT + "                                    #")
+    print ("##                                                         ##")
+    print (" ####                     " + colors.BLUE + "v. " + version + colors.DEFAULT + "                     #### ")
+    print ("    ###########                               ###########    ")
+    print ("              ###########           ###########              ")
+    print ("                        #############                        ")
 
 # Check arguments
 if len(sys.argv) < 2:
@@ -83,8 +123,9 @@ def createMakefile():
         makefile.write("re:\tfclean all\n\n")
         makefile.write(".PHONY:\tall clean fclean re\n\n")
         makefile.close()
+        showOk()
     except:
-        print (colors.YELLOW + "Warning couldn't create the Makefile" + colors.DEFAULT)
+        showError()
 
 def readConfig(): # Analyse the config file
     global output
@@ -109,6 +150,8 @@ def readConfig(): # Analyse the config file
                 includeFile = inc[1]
             elif inc[0] == "macrDictionnary":
                 macroFile = inc[1]
+            elif inc[0] == "typeDictionnary":
+                typeFile = inc[1]
             elif inc[0] == "include":
                 bIncludeHeader = int(inc[1])
             elif inc[0] == "includeLine":
@@ -125,6 +168,7 @@ def readConfig(): # Analyse the config file
             config.write("output:" + output + ";\n")
             config.write("funcDictionnary:" + includeFile + ";\n")
             config.write("macrDictionnary:" + macroFile + ";\n")
+            config.write("typeDictionnary:" + typeFile + ";\n")
             config.write("include:" + str(bIncludeHeader) + ";\n")
             config.write("includeLine:" + str(lineHeader) + ";\n")
             config.write("makefile:" + str(bDoMakefile) + ";\n")
@@ -156,13 +200,13 @@ def alignFunctions():
         functions[i] = cregSpace.sub(" " * (maxLen - length), func, 1)
 
 def analizeFile(fileName):
-    print ("Analysing \"" + fileName + "\"")
+    print ("Analysing \"" + fileName + "\"", end="")
     try:
         file = open(fileName, "r")
         data = file.read()
         file.close()
     except:
-        error_file(fileName)
+        showError()
         return
     data = cregExceptions.sub("", data)
     localDefinedFuncs = []
@@ -193,6 +237,7 @@ def analizeFile(fileName):
             file.close()
         except:
             error_file(fileName)
+    showOk()
 
 def addDblIncSec(file, name):
     name = name.split("/")[-1].upper().replace(".", "_") + "_"
@@ -201,18 +246,27 @@ def addDblIncSec(file, name):
 
 readConfig()
 
+showHeader()
+print (colors.GREEN + "\n-----------------------")
+print ("---Start of analyzis---")
+print ("-----------------------\n" + colors.DEFAULT)
 fileNames = iter(sys.argv)
 next(fileNames)
 for fileName in fileNames:
     if (fileName.endswith(".c")):
         analizeFile(fileName)
+print (colors.GREEN + "\n-----------------------")
+print ("--- End of analyzis ---")
+print ("-----------------------\n" + colors.DEFAULT)
 
-print ("Aligning the functions")
 alignFunctions()
-print ("Creating the output folder")
+print ("Creating the output folder", end="")
 if not os.path.exists(output):
     os.makedirs(output)
-print ("Opening \"" + includeFile + "\"")
+showOk()
+
+# Open conf files
+print ("Opening \"" + includeFile + "\"", end="")
 try:
     config = open(includeFile, "r")
     data = config.read()
@@ -222,9 +276,10 @@ try:
     for inc in sepInc:
         inc = inc.split(":")
         includes[inc[0]] = inc[1]
+    showOk()
 except:
-    print (colors.YELLOW + "Warning: \"" + includeFile + "\" not found." + colors.DEFAULT)
-print ("Opening \"" + macroFile + "\"")
+    showError()
+print ("Opening \"" + macroFile + "\"", end="")
 try:
     config = open(macroFile, "r")
     data = config.read()
@@ -234,9 +289,10 @@ try:
     for inc in sepInc:
         inc = inc.split(":")
         macros[inc[0]] = inc[1]
+    showOk()
 except:
-    print (colors.YELLOW + "Warning: \"" + macroFile + "\" not found." + colors.DEFAULT)
-print ("Opening \"" + typeFile + "\"")
+    showError()
+print ("Opening \"" + typeFile + "\"", end="")
 try:
     config = open(typeFile, "r")
     data = config.read()
@@ -246,51 +302,69 @@ try:
     for inc in sepInc:
         inc = inc.split(":")
         types[inc[0]] = inc[1]
+    showOk()
 except:
-    print (colors.YELLOW + "Warning: \"" + typeFile + "\" not found." + colors.DEFAULT)
-print ("Creating the files")
+    showError()
+
+print (colors.GREEN + "\n------------------------------")
+print ("---Start of header creation---")
+print ("------------------------------\n" + colors.DEFAULT)
+# Create headers
 for fileName, funcs in usedFuncsMacsPerFile.items():
     if funcs:
         tempName = output + fileName.split("/")[-1].replace(".c", ".h")
-        print ("Creating \"" + tempName + "\"")
-        file = open(tempName, "w")
-        addDblIncSec(file, tempName)
-        neededIncludes = []
-        for func in funcs:
-            if not func in functionNames:
-                found = 0
-                for key, value in includes.items():
-                    if func in value.split(";"):
-                        found = 1
-                        if key != "void":
-                            neededIncludes.append(key)
-                for key, value in macros.items():
-                    if func in value.split(";"):
-                        found = 1
-                        if key != "void":
-                            neededIncludes.append(key)
-                for key, value in types.items():
-                    if func in value.split(";"):
-                        found = 1
-                        if key != "void":
-                            neededIncludes.append(key)
-                if found == 0:
-                    print (colors.YELLOW + "Warning: function, macro or type \"" + func + "\" not found in the config file" + colors.DEFAULT)
-        neededIncludes = list(set(neededIncludes))
-        for inc in neededIncludes:
-            if inc[0] != '!':
-                file.write("#  include <" + inc + ">\n")
-        for inc in neededIncludes:
-            if inc[0] == '!':
-                file.write("#  include \"" + inc[1:] + "\"\n")
-        if neededIncludes:
-            file.write("\n")
-        for func in funcs:
-            if func in functionNames:
-                file.write(functions[functionNames.index(func)] + ";\n")
-        file.write("\n#endif")
-        file.close()
+        print ("Creating \"" + tempName + "\"", end="")
+        try:
+            file = open(tempName, "w")
+            addDblIncSec(file, tempName)
+            neededIncludes = []
+            for func in funcs:
+                if not func in functionNames:
+                    found = 0
+                    for key, value in includes.items():
+                        if func in value.split(";"):
+                            found = 1
+                            if key != "void":
+                                neededIncludes.append(key)
+                    for key, value in macros.items():
+                        if func in value.split(";"):
+                            found = 1
+                            if key != "void":
+                                neededIncludes.append(key)
+                    for key, value in types.items():
+                        if func in value.split(";"):
+                            found = 1
+                            if key != "void":
+                                neededIncludes.append(key)
+                    if found == 0:
+                        print (colors.YELLOW + "Warning: function, macro or type \"" + func + "\" not found in the config file" + colors.DEFAULT)
+            neededIncludes = list(set(neededIncludes))
+            for inc in neededIncludes:
+                if inc[0] != '!':
+                    file.write("#  include <" + inc + ">\n")
+            for inc in neededIncludes:
+                if inc[0] == '!':
+                    file.write("#  include \"" + inc[1:] + "\"\n")
+            if neededIncludes:
+                file.write("\n")
+            for func in funcs:
+                if func in functionNames:
+                    file.write(functions[functionNames.index(func)] + ";\n")
+            file.write("\n#endif")
+            file.close()
+            showOk()
+        except:
+            showError()
+print (colors.GREEN + "\n------------------------------")
+print ("--- End of header creation ---")
+print ("------------------------------\n" + colors.DEFAULT)
+
 if bDoMakefile == 1:
-    print ("Creating the Makefile")
+    print ("Creating the Makefile", end="")
     createMakefile()
-print ("Done")
+
+print (colors.GREEN)
+print ("--------")
+print ("- DONE -")
+print ("--------")
+print (colors.DEFAULT)
