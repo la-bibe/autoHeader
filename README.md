@@ -30,3 +30,6 @@ You don't need to write the parenthesis, just the name of the function.
 
 ### macros.conf file
 Same as the functions.conf file.
+
+### types.conf file
+Same as the functions.conf file.

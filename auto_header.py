@@ -39,15 +39,18 @@ if len(sys.argv) < 2:
 regFunFull = "^[A-Za-z0-9_]+[ \t\*]+[A-Za-z0-9_]+\(([A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*,[ \*\n\t]*)*([A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*)?\)$"
 regFunCalled = "[A-Za-z0-9_]+\("
 regMacro = "[^A-Za-z0-9_][A-Z0-9_]*[A-Z]+[A-Z0-9_]*[^A-Za-z0-9_]"
+regVariable = "[A-Za-z0-9_]+\**[ \t]+\**[A-Za-z0-9_]+"
 cregArgNameComma = re.compile("[ ]*[A-Za-z0-9_]+,")
 cregArgNamePar = re.compile("[ ]*[A-Za-z0-9_]+\)")
 cregSpaces = re.compile("[ \n\t]+")
 cregSpace = re.compile(" ")
+cregExceptions = re.compile("(\"(.*?)\")|(\/\*(.*?)(\*\/))|(\/\/.*$)", re.M|re.S)
 
 # Config
 output = "include/"
 includeFile = "functions.conf"
 macroFile = "macros.conf"
+typeFile = "types.conf"
 binaryName = "a.out"
 bLetArgNames = 0
 bIncludeHeader = 1
@@ -60,6 +63,7 @@ functionNames = []
 usedFuncsMacsPerFile = {}
 includes = {}
 macros = {}
+types = {}
 
 def createMakefile():
     try:
@@ -160,19 +164,22 @@ def analizeFile(fileName):
     except:
         error_file(fileName)
         return
+    data = cregExceptions.sub("", data)
     localDefinedFuncs = []
     for function in re.finditer(regFunFull, data, re.M):
         localDefinedFuncs.append(addFunction(function.group()))
     localUsedFuncs = []
     for function in re.finditer(regFunCalled, data, re.M):
         localUsedFuncs.append(function.group().replace("(", ""))
-    localUsedFuncs = list(set(localUsedFuncs))
-    for function in localDefinedFuncs:
-        localUsedFuncs.remove(function)
     for macro in re.finditer(regMacro, data, re.M): # Macro handling (yes I know i need to clean this)
         macro = macro.group()[1:-1]
         localUsedFuncs.append(macro)
+    for variable in re.finditer(regVariable, data, re.M): # Variable type handling (same as ^^^^)
+        variable = variable.group().split(" ")[0].split("\t")[0]
+        localUsedFuncs.append(variable)
     localUsedFuncs = list(set(localUsedFuncs))
+    for function in localDefinedFuncs:
+        localUsedFuncs.remove(function)
     usedFuncsMacsPerFile[fileName] = localUsedFuncs
     if bIncludeHeader == 1:
         try:
@@ -229,6 +236,18 @@ try:
         macros[inc[0]] = inc[1]
 except:
     print (colors.YELLOW + "Warning: \"" + macroFile + "\" not found." + colors.DEFAULT)
+print ("Opening \"" + typeFile + "\"")
+try:
+    config = open(typeFile, "r")
+    data = config.read()
+    config.close()
+    data = cregSpaces.sub("", data)
+    sepInc = data.split("-")
+    for inc in sepInc:
+        inc = inc.split(":")
+        types[inc[0]] = inc[1]
+except:
+    print (colors.YELLOW + "Warning: \"" + typeFile + "\" not found." + colors.DEFAULT)
 print ("Creating the files")
 for fileName, funcs in usedFuncsMacsPerFile.items():
     if funcs:
@@ -250,14 +269,20 @@ for fileName, funcs in usedFuncsMacsPerFile.items():
                         found = 1
                         if key != "void":
                             neededIncludes.append(key)
+                for key, value in types.items():
+                    if func in value.split(";"):
+                        found = 1
+                        if key != "void":
+                            neededIncludes.append(key)
                 if found == 0:
-                    print (colors.YELLOW + "Warning: function or macro \"" + func + "\" not found in the config file" + colors.DEFAULT)
+                    print (colors.YELLOW + "Warning: function, macro or type \"" + func + "\" not found in the config file" + colors.DEFAULT)
         neededIncludes = list(set(neededIncludes))
+        for inc in neededIncludes:
+            if inc[0] != '!':
+                file.write("#  include <" + inc + ">\n")
         for inc in neededIncludes:
             if inc[0] == '!':
                 file.write("#  include \"" + inc[1:] + "\"\n")
-            else:
-                file.write("#  include <" + inc + ">\n")
         if neededIncludes:
             file.write("\n")
         for func in funcs:
