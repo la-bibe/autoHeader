@@ -11,6 +11,9 @@ It can create header files adapted to every c file you pass in parameter with:
 
 It can also automatically create a Makefile.
 
+### Usage
+`auto_header.py [file.c]...`
+
 ### general.conf file
 - `output:include/` : This is the destination of the header files.
 - `funcDictionnary:functions.conf` : This is the file which contains the headers associated with their functions.

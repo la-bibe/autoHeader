@@ -28,11 +28,12 @@ class colors:
     DEFAULT = "\033[0m"
 
 def error_args():
-    print(colors.RED + "Incorrect number of arguments" + colors.DEFAULT)
+    print (colors.RED + "Incorrect number of arguments" + colors.DEFAULT)
+    print (colors.YELLOW + "Usage:\n\tauto_header.py [file.c]..." + colors.DEFAULT)
     sys.exit(84)
 
 def error_file(name):
-    print(colors.RED + "Error while opening the file: \"" + name + "\"" + colors.DEFAULT)
+    print (colors.RED + "Error while opening the file: \"" + name + "\"" + colors.DEFAULT)
 
 def showOk():
     print (colors.GREEN + " -> Ok" + colors.DEFAULT)
@@ -200,7 +201,7 @@ def alignFunctions():
         functions[i] = cregSpace.sub(" " * (maxLen - length), func, 1)
 
 def analizeFile(fileName):
-    print ("Analysing \"" + fileName + "\"", end="")
+    print ("\tAnalysing \"" + fileName + "\"", end="")
     try:
         file = open(fileName, "r")
         data = file.read()
@@ -230,11 +231,17 @@ def analizeFile(fileName):
             file = open(fileName, "r")
             data = file.readlines()
             file.close()
-            data.insert(lineHeader, "#include \"" + fileName.split("/")[-1].replace(".c", ".h\"\n\n"))
-            file = open(fileName, "w")
-            data = "".join(data)
-            file.write(data)
-            file.close()
+            name = "#include \"" + fileName.split("/")[-1].replace(".c", ".h\"\n")
+            exists = 0
+            for line in data:
+                if line == name:
+                    exists = 1
+            if exists == 0:
+                data.insert(lineHeader, name + "\n")
+                file = open(fileName, "w")
+                data = "".join(data)
+                file.write(data)
+                file.close()
         except:
             error_file(fileName)
     showOk()
@@ -249,7 +256,7 @@ readConfig()
 showHeader()
 print (colors.GREEN + "\n-----------------------")
 print ("---Start of analyzis---")
-print ("-----------------------\n" + colors.DEFAULT)
+print ("-----------------------" + colors.DEFAULT)
 fileNames = iter(sys.argv)
 next(fileNames)
 for fileName in fileNames:
@@ -308,12 +315,12 @@ except:
 
 print (colors.GREEN + "\n------------------------------")
 print ("---Start of header creation---")
-print ("------------------------------\n" + colors.DEFAULT)
+print ("------------------------------" + colors.DEFAULT)
 # Create headers
 for fileName, funcs in usedFuncsMacsPerFile.items():
     if funcs:
         tempName = output + fileName.split("/")[-1].replace(".c", ".h")
-        print ("Creating \"" + tempName + "\"", end="")
+        print ("\tCreating \"" + tempName + "\"", end="")
         try:
             file = open(tempName, "w")
             addDblIncSec(file, tempName)
