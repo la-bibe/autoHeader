@@ -67,6 +67,12 @@ def addHeader(file):
     file.write("|* https://github.com/FantinBibas/autoHeader *|\n")
     file.write("\\*********************************************/\n\n")
 
+def addMakefileHeader(file):
+    file.write("## /*********************************************\\\n")
+    file.write("## |*  Makefile created by AutoHeader v. " + version + "  *|\n")
+    file.write("## |* https://github.com/FantinBibas/autoHeader *|\n")
+    file.write("## \\*********************************************/\n\n")
+
 def showHeader():
     os.system("clear")
     print ("  #########################################################  ")
@@ -147,6 +153,7 @@ def openConfFile(confFile):
 def createMakefile():
     try:
         makefile = open("Makefile", "w")
+        addMakefileHeader(makefile)
         makefile.write("CC\t=\tgcc\n\n")
         makefile.write("RM\t=\trm -f\n\n")
         makefile.write("FLAGS\t+=\t" + libs + "\n\n")
@@ -313,6 +320,30 @@ def addDblIncSec(file, name):
     file.write("#ifndef " + name + "\n" + "#  define " + name + "\n\n")
 
 
+def createHeaderFile(name, includeArray, functionArray):
+    file = open(name, "w")
+    addHeader(file)
+    addDblIncSec(file, name)
+    for inc in includeArray:
+        if inc[0] != '!':
+            file.write("#  include <" + inc + ">\n")
+            if verbose == 1:
+                printPink("\t\tIncluding \"" + inc + "\"")
+    for inc in includeArray:
+        if inc[0] == '!':
+            file.write("#  include \"" + inc[1:] + "\"\n")
+            if verbose == 1:
+                printPink("\t\tIncluding \"" + inc[1:] + "\"")
+    if includeArray:
+        file.write("\n")
+    for func in functionArray:
+        if func in functionNames:
+            file.write(functions[functionNames.index(func)] + ";\n")
+            if verbose == 1:
+                printPink("\t\tPrototyping \"" + func + "\"")
+    file.write("\n#endif")
+    file.close()
+
 readConfig()
 
 args = sys.argv[1:]
@@ -400,9 +431,6 @@ if onefile == "": # Create one header for each c file
                 if verbose == 1:
                     print()
             try:
-                file = open(tempName, "w")
-                addHeader(file)
-                addDblIncSec(file, tempName)
                 neededIncludes = []
                 for func in funcs:
                     if not func in functionNames:
@@ -416,34 +444,13 @@ if onefile == "": # Create one header for each c file
                             if quiet == 0:
                                 print (colors.YELLOW + "\n\t\t-> Warning: \"" + colors.RED  + func + colors.YELLOW + "\" not found in the config file nor in others c files" + colors.DEFAULT)
                 neededIncludes = list(set(neededIncludes))
-                for inc in neededIncludes:
-                    if inc[0] != '!':
-                        file.write("#  include <" + inc + ">\n")
-                        if verbose == 1:
-                            printPink("\t\tIncluding \"" + inc + "\"")
-                for inc in neededIncludes:
-                    if inc[0] == '!':
-                        file.write("#  include \"" + inc[1:] + "\"\n")
-                        if verbose == 1:
-                            printPink("\t\tIncluding \"" + inc[1:] + "\"")
-                if neededIncludes:
-                    file.write("\n")
-                for func in funcs:
-                    if func in functionNames:
-                        file.write(functions[functionNames.index(func)] + ";\n")
-                        if verbose == 1:
-                            printPink("\t\tPrototyping \"" + func + "\"")
-                file.write("\n#endif")
-                file.close()
+                createHeaderFile(tempName, neededIncludes, funcs)
                 showOk()
             except:
                 showError()
 else: # Create only one header for all c files
     neededIncludes = []
     try:
-        file = open(output + onefile, "w")
-        addHeader(file)
-        addDblIncSec(file, onefile)
         if quiet == 0:
             print ("\tCreating \"" + colors.CYAN + onefile + colors.DEFAULT + "\"", end="")
             if verbose == 1:
@@ -462,24 +469,7 @@ else: # Create only one header for all c files
                             if quiet == 0:
                                 print (colors.YELLOW + "\n\t\t-> Warning: \"" + colors.RED  + func + colors.YELLOW + "\" not found in the config file nor in others c files" + colors.DEFAULT)
         neededIncludes = list(set(neededIncludes))
-        for inc in neededIncludes:
-            if inc[0] != '!':
-                file.write("#  include <" + inc + ">\n")
-                if verbose == 1:
-                    printPink("\t\tIncluding \"" + inc + "\"")
-        for inc in neededIncludes:
-            if inc[0] == '!':
-                file.write("#  include \"" + inc[1:] + "\"\n")
-                if verbose == 1:
-                    printPink("\t\tIncluding \"" + inc[1:] + "\"")
-        if neededIncludes:
-            file.write("\n")
-        for func in functions:
-            file.write(func + ";\n")
-            if verbose == 1:
-                printPink("\t\tPrototyping \"" + func + "\"")
-        file.write("\n#endif")
-        file.close()
+        createHeaderFile(output + onefile, neededIncludes, functionNames)
         showOk()
     except:
         showError()

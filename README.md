@@ -10,6 +10,19 @@ It can create header files adapted to every c file you pass in parameter with:
 
 It can also automatically create a Makefile.
 
+### Table of content
+
+- [AutoHeader](#)
+		- [Description](#)
+    - [Table of content](#)
+    - [Installation](#)
+		- [Usage](#)
+		- [general.conf file](#)
+		- [Other configuration files](#)
+			- [Syntax of the configuration files](#)
+
+### Installation
+
 To install it just launch the install.sh script:
 
 ```
@@ -31,6 +44,12 @@ You can also use the following flags:
 - "onefile:file.h" : Create only one header file which contains the necessary includes for all files and all found prototypes
 
 ### general.conf file
+
+This file is placed by default in the ~/bin/settings folder. You can change it by modifying the line
+```
+configFile = os.path.expanduser("~") + "/bin/settings/general.conf"
+```
+in auto_header.py. It should be near to the top of the file.
 
 - `output:include/` : This is the destination of the header files.
 - `funcDictionnary:~/bin/settings/functions.conf` : This is the file which contains the headers associated with their functions.
@@ -67,3 +86,5 @@ Each header name can be preceded by a '!' to include it with quotes (`#include "
 The headers are separated by '-' and the file name is separated of the functions, macros and types with ':'. Each function, macro and type must end with ';'.
 
 For the functions you must not include the parenthesis nor the type, only the name.
+
+You can use void as header file to not include anything for the associated function, macro or type.
