@@ -60,6 +60,12 @@ def printYellow(text):
 def printPink(text):
     print (colors.PINK + text + colors.DEFAULT)
 
+def addHeader(file):
+    file.write("/*********************************************\\\n")
+    file.write("|*   Header created by AutoHeader v. " + version + "   *|\n")
+    file.write("|* https://github.com/FantinBibas/autoHeader *|\n")
+    file.write("\\*********************************************/\n\n")
+
 def showHeader():
     os.system("clear")
     print ("  #########################################################  ")
@@ -105,6 +111,7 @@ lineHeader = 10
 quiet = 0
 verbose = 0
 onefile = ""
+libs = ""
 
 # Arrays
 flags = []
@@ -120,6 +127,7 @@ def createMakefile():
         makefile = open("Makefile", "w")
         makefile.write("CC\t=\tgcc\n\n")
         makefile.write("RM\t=\trm -f\n\n")
+        makefile.write("FLAGS\t+=\t" + libs + "\n\n")
         makefile.write("CPPFLAGS\t+=\t-I " + output + "\n\n")
         makefile.write("NAME\t=\t" + binaryName + "\n\n")
         makefile.write("SRCS\t=\t")
@@ -146,6 +154,7 @@ def readConfig(): # Analyse the config file
     global bDoMakefile
     global binaryName
     global bLetArgNames
+    global libs
     try:
         config = open(configFile, "r")
         data = config.read()
@@ -154,24 +163,25 @@ def readConfig(): # Analyse the config file
         sepInc = data.split(";")
         for inc in sepInc:
             inc = inc.split(":")
-            if inc[0] == "output":
-                output = inc[1]
-            elif inc[0] == "funcDictionnary":
-                includeFile = inc[1]
-            elif inc[0] == "macrDictionnary":
-                macroFile = inc[1]
-            elif inc[0] == "typeDictionnary":
-                typeFile = inc[1]
-            elif inc[0] == "include":
-                bIncludeHeader = int(inc[1])
-            elif inc[0] == "includeLine":
-                lineHeader = int(inc[1])
-            elif inc[0] == "makefile":
-                bDoMakefile = int(inc[1])
-            elif inc[0] == "binary":
-                binaryName = int(inc[1])
-            elif inc[0] == "argNames":
-                bLetArgNames = int(inc[1])
+            if len(inc) == 2:
+                if inc[0] == "output":
+                    output = inc[1]
+                elif inc[0] == "funcDictionnary":
+                    includeFile = inc[1]
+                elif inc[0] == "macrDictionnary":
+                    macroFile = inc[1]
+                elif inc[0] == "typeDictionnary":
+                    typeFile = inc[1]
+                elif inc[0] == "include":
+                    bIncludeHeader = int(inc[1])
+                elif inc[0] == "includeLine":
+                    lineHeader = int(inc[1])
+                elif inc[0] == "makefile":
+                    bDoMakefile = int(inc[1])
+                elif inc[0] == "binary":
+                    binaryName = inc[1]
+                elif inc[0] == "argNames":
+                    bLetArgNames = int(inc[1])
     except:
         try:
             config = open(configFile, "w")
@@ -300,7 +310,17 @@ for flag in flags:
         quiet = 1
     elif flag[0] == "v":
         verbose = 1
-    elif flag[0] == "onefile":
+    elif flag[0] == "M":
+        bDoMakefile = 1
+    elif flag[0] == "m":
+        bDoMakefile = 0
+    elif flag[0] == "o" and len(flag) == 2:
+        output = flag[1]
+    elif flag[0] == "b" and len(flag) == 2:
+        binaryName = flag[1]
+    elif flag[0] == "l" and len(flag) == 2:
+        libs = flag[1]
+    elif flag[0] == "onefile" and len(flag) == 2:
         onefile = flag[1]
     else:
         printRed("Unrecognised flag \"" + flag[0] + "\"")
@@ -409,6 +429,7 @@ if onefile == "":
                     print()
             try:
                 file = open(tempName, "w")
+                addHeader(file)
                 addDblIncSec(file, tempName)
                 neededIncludes = []
                 for func in funcs:
@@ -456,10 +477,11 @@ if onefile == "":
             except:
                 showError()
 else:
-    # Create headers
+    # Create only one header
     neededIncludes = []
     try:
         file = open(output + onefile, "w")
+        addHeader(file)
         addDblIncSec(file, onefile)
         if quiet == 0:
             print ("\tCreating \"" + colors.CYAN + onefile + colors.DEFAULT + "\"", end="")

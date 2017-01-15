@@ -17,15 +17,20 @@ It can also automatically create a Makefile.
 You can also use the following flags:
 - "-v" : Verbose mode
 - "-q" : Quiet mode (overrides verbose mode)
+- "-o:include/" : Set the output folder for the headers
+- "-b:a.out" : Set the name of the binary for the Makefile
+- "-l:-lm" : Set the libs for the Makefile
+- "-M" : Create a Makefile
+- "-m" : Do not create a Makefile
 - "onefile:file.h" : Create only one header file which contains the necessary includes for all files and all found prototypes
 
 ### general.conf file
 - `output:include/` : This is the destination of the header files.
 - `funcDictionnary:functions.conf` : This is the file which contains the headers associated with their functions.
 - `macrDictionnary:macros.conf` : This is the file which contains the headers associated with their macros.
-- `include:1` : 0 or 1, if it's 1 the programm will add an `#include "filename.h"` at the *includeLine* line.
+- `include:1` : 0 or 1, if it's 1 the program will add an `#include "filename.h"` at the *includeLine* line.
 - `includeLine:10` : The line where to write the include.
-- `makefile:1` : 0 or 1, if it's 1 the programm will create a Makefile with the files passed as parameter and including the headers.
+- `makefile:1` : 0 or 1, if it's 1 the program will create a Makefile with the files passed as parameter and including the headers.
 - `binary:a.out` : Name of the output binary for the Makefile.
 - `argNames:0` : 0 or 1, if it's 0 it will remove the name of the parameters in the prototypes in the headers.
 
