@@ -104,6 +104,7 @@ lineHeader = 10
 # Flags
 quiet = 0
 verbose = 0
+onefile = ""
 
 # Arrays
 flags = []
@@ -187,6 +188,8 @@ def readConfig(): # Analyse the config file
         except:
             print (colors.YELLOW + "Warning couldn't create the config file." + colors.DEFAULT)
 
+##THE CAKE IS A LIE!!!!!##
+
 def addFunction(function): # Add the function to the dictionnary array of known functions
     if bLetArgNames == 0:
         function = cregArgNameComma.sub(",", function)
@@ -254,7 +257,10 @@ def analizeFile(fileName):
             file = open(fileName, "r")
             data = file.readlines()
             file.close()
-            name = "#include \"" + fileName.split("/")[-1].replace(".c", ".h\"\n")
+            if onefile == "":
+                name = "#include \"" + fileName.split("/")[-1].replace(".c", ".h\"\n")
+            else:
+                name = "#include \"" + onefile + "\"\n"
             exists = 0
             for line in data:
                 if line == name:
@@ -294,9 +300,14 @@ for flag in flags:
         quiet = 1
     elif flag[0] == "v":
         verbose = 1
+    elif flag[0] == "onefile":
+        onefile = flag[1]
     else:
         printRed("Unrecognised flag \"" + flag[0] + "\"")
         sys.exit(84)
+
+if quiet == 1:
+    verbose = 0
 
 if quiet == 0:
     showHeader()
@@ -362,6 +373,7 @@ try:
     showOk()
 except:
     showError()
+
 if quiet == 0:
     print ("Opening \"" + colors.CYAN + typeFile + colors.DEFAULT + "\"", end="")
     if verbose == 1:
@@ -385,61 +397,120 @@ if quiet == 0:
     print (colors.BLUE + "\n------------------------------")
     print ("---Start of header creation---")
     print ("------------------------------\n" + colors.DEFAULT)
-# Create headers
-for fileName, funcs in usedFuncsMacsPerFile.items():
-    if funcs:
-        tempName = output + fileName.split("/")[-1].replace(".c", ".h")
+
+if onefile == "":
+    # Create headers
+    for fileName, funcs in usedFuncsMacsPerFile.items():
+        if funcs:
+            tempName = output + fileName.split("/")[-1].replace(".c", ".h")
+            if quiet == 0:
+                print ("\tCreating \"" + colors.CYAN + tempName + colors.DEFAULT + "\"", end="")
+                if verbose == 1:
+                    print()
+            try:
+                file = open(tempName, "w")
+                addDblIncSec(file, tempName)
+                neededIncludes = []
+                for func in funcs:
+                    if not func in functionNames:
+                        found = 0
+                        for key, value in includes.items():
+                            if func in value.split(";"):
+                                found = 1
+                                if key != "void":
+                                    neededIncludes.append(key)
+                        for key, value in macros.items():
+                            if func in value.split(";"):
+                                found = 1
+                                if key != "void":
+                                    neededIncludes.append(key)
+                        for key, value in types.items():
+                            if func in value.split(";"):
+                                found = 1
+                                if key != "void":
+                                    neededIncludes.append(key)
+                        if found == 0:
+                            if quiet == 0:
+                                print (colors.YELLOW + "\n\t\t-> Warning: \"" + colors.RED  + func + colors.YELLOW + "\" not found in the config file nor in others c files" + colors.DEFAULT)
+                neededIncludes = list(set(neededIncludes))
+                for inc in neededIncludes:
+                    if inc[0] != '!':
+                        file.write("#  include <" + inc + ">\n")
+                        if verbose == 1:
+                            printPink("\t\tIncluding \"" + inc + "\"")
+                for inc in neededIncludes:
+                    if inc[0] == '!':
+                        file.write("#  include \"" + inc[1:] + "\"\n")
+                        if verbose == 1:
+                            printPink("\t\tIncluding \"" + inc[1:] + "\"")
+                if neededIncludes:
+                    file.write("\n")
+                for func in funcs:
+                    if func in functionNames:
+                        file.write(functions[functionNames.index(func)] + ";\n")
+                        if verbose == 1:
+                            printPink("\t\tPrototyping \"" + func + "\"")
+                file.write("\n#endif")
+                file.close()
+                showOk()
+            except:
+                showError()
+else:
+    # Create headers
+    neededIncludes = []
+    try:
+        file = open(output + onefile, "w")
+        addDblIncSec(file, onefile)
         if quiet == 0:
-            print ("\tCreating \"" + colors.CYAN + tempName + colors.DEFAULT + "\"", end="")
+            print ("\tCreating \"" + colors.CYAN + onefile + colors.DEFAULT + "\"", end="")
             if verbose == 1:
                 print()
-        try:
-            file = open(tempName, "w")
-            addDblIncSec(file, tempName)
-            neededIncludes = []
-            for func in funcs:
-                if not func in functionNames:
-                    found = 0
-                    for key, value in includes.items():
-                        if func in value.split(";"):
-                            found = 1
-                            if key != "void":
-                                neededIncludes.append(key)
-                    for key, value in macros.items():
-                        if func in value.split(";"):
-                            found = 1
-                            if key != "void":
-                                neededIncludes.append(key)
-                    for key, value in types.items():
-                        if func in value.split(";"):
-                            found = 1
-                            if key != "void":
-                                neededIncludes.append(key)
-                    if (found == 0 & quiet == 0):
-                        print (colors.YELLOW + "\n\t\t-> Warning: \"" + colors.RED  + func + colors.YELLOW + "\" not found in the config file nor in others c files" + colors.DEFAULT, end="")
-            neededIncludes = list(set(neededIncludes))
-            for inc in neededIncludes:
-                if inc[0] != '!':
-                    file.write("#  include <" + inc + ">\n")
-                    if verbose == 1:
-                        printPink("\t\tIncluding \"" + inc + "\"")
-            for inc in neededIncludes:
-                if inc[0] == '!':
-                    file.write("#  include \"" + inc[1:] + "\"\n")
-                    if verbose == 1:
-                        printPink("\t\tIncluding \"" + inc[1:] + "\"")
-            if neededIncludes:
-                file.write("\n")
-            for func in funcs:
-                if func in functionNames:
-                    file.write(functions[functionNames.index(func)] + ";\n")
-                    if verbose == 1:
-                        printPink("\t\tPrototyping \"" + func + "\"")
-            file.write("\n#endif")
-            file.close()
-            showOk()
-        except:
-            showError()
+        for fileName, funcs in usedFuncsMacsPerFile.items():
+            if funcs:
+                for func in funcs:
+                    if not func in functionNames:
+                        found = 0
+                        for key, value in includes.items():
+                            if func in value.split(";"):
+                                found = 1
+                                if key != "void":
+                                    neededIncludes.append(key)
+                        for key, value in macros.items():
+                            if func in value.split(";"):
+                                found = 1
+                                if key != "void":
+                                    neededIncludes.append(key)
+                        for key, value in types.items():
+                            if func in value.split(";"):
+                                found = 1
+                                if key != "void":
+                                    neededIncludes.append(key)
+                        if found == 0:
+                            if quiet == 0:
+                                print (colors.YELLOW + "\n\t\t-> Warning: \"" + colors.RED  + func + colors.YELLOW + "\" not found in the config file nor in others c files" + colors.DEFAULT)
+        neededIncludes = list(set(neededIncludes))
+        for inc in neededIncludes:
+            if inc[0] != '!':
+                file.write("#  include <" + inc + ">\n")
+                if verbose == 1:
+                    printPink("\t\tIncluding \"" + inc + "\"")
+        for inc in neededIncludes:
+            if inc[0] == '!':
+                file.write("#  include \"" + inc[1:] + "\"\n")
+                if verbose == 1:
+                    printPink("\t\tIncluding \"" + inc[1:] + "\"")
+        if neededIncludes:
+            file.write("\n")
+        for func in functions:
+            file.write(func + ";\n")
+            if verbose == 1:
+                printPink("\t\tPrototyping \"" + func + "\"")
+        file.write("\n#endif")
+        file.close()
+        showOk()
+    except:
+        showError()
+
 if quiet == 0:
     print (colors.BLUE + "\n------------------------------")
     print ("--- End of header creation ---")
@@ -448,6 +519,8 @@ if quiet == 0:
 if bDoMakefile == 1:
     if quiet == 0:
         print ("Creating the Makefile", end="")
+        if verbose == 1:
+            print ()
     createMakefile()
 
 if quiet == 0:

@@ -14,6 +14,11 @@ It can also automatically create a Makefile.
 ### Usage
 `auto_header.py [file.c]...`
 
+You can also use the following flags:
+- "-v" : Verbose mode
+- "-q" : Quiet mode (overrides verbose mode)
+- "onefile:file.h" : Create only one header file which contains the necessary includes for all files and all found prototypes
+
 ### general.conf file
 - `output:include/` : This is the destination of the header files.
 - `funcDictionnary:functions.conf` : This is the file which contains the headers associated with their functions.
