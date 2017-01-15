@@ -6,12 +6,18 @@ AutoHeader is a little Python program that helps the creation of a C project.
 
 It can create header files adapted to every c file you pass in parameter with:
 - The prototypes of the functions found in the other files by analysing which ones are used
-- The header files needed found associated with their functions in the functions.conf file (by default)
-- The header files needed for the macros in macros.conf (by default)
+- The header files needed by analysing what functions, macros, structs and typedef are used based on the configuration files.
 
 It can also automatically create a Makefile.
 
+To install it just launch the install.sh script:
+
+```
+./install.sh
+```
+
 ### Usage
+
 `auto_header.py [file.c]...`
 
 You can also use the following flags:
@@ -25,24 +31,39 @@ You can also use the following flags:
 - "onefile:file.h" : Create only one header file which contains the necessary includes for all files and all found prototypes
 
 ### general.conf file
+
 - `output:include/` : This is the destination of the header files.
-- `funcDictionnary:functions.conf` : This is the file which contains the headers associated with their functions.
-- `macrDictionnary:macros.conf` : This is the file which contains the headers associated with their macros.
+- `funcDictionnary:~/bin/settings/functions.conf` : This is the file which contains the headers associated with their functions.
+- `macrDictionnary:~/bin/settings/macros.conf` : This is the file which contains the headers associated with their macros.
+- `typeDictionnary:~/bin/settings/types.conf` : This is the file which contains the headers associated with their types.
 - `include:1` : 0 or 1, if it's 1 the program will add an `#include "filename.h"` at the *includeLine* line.
 - `includeLine:10` : The line where to write the include.
 - `makefile:1` : 0 or 1, if it's 1 the program will create a Makefile with the files passed as parameter and including the headers.
 - `binary:a.out` : Name of the output binary for the Makefile.
 - `argNames:0` : 0 or 1, if it's 0 it will remove the name of the parameters in the prototypes in the headers.
 
-### functions.conf file
+### Other configuration files
+
+By default the program will look at the three files function.conf, macros.conf and types.conf in the folder ~/bin/settings but this can be changed in the general.conf file. The program will also check if there is a file auto_header.conf in the folder where it is executed, if so it will load it as well.
+
+Theorically you should put all the general functions, types and macros in the configuration files in the ~/bin/settings folder and the functions, types and macros specific to your project in the auto_header.conf file.
+
+#### Syntax of the configuration files
+
+```
+header.h:
+  functionInTheHeader;
+  otherFunctionInTheHeader;
+  MACRO_IN_THE_HEADER;
+  t_typedefInTheHeader;
+-
+otherHeader.h:
+  MACRO_IN_OTHERHEADER;
+  functionInOtherHeader;
+```
+
 Each header name can be preceded by a '!' to include it with quotes (`#include "tardis.h"`) instead of diples (`#include <tardis.h>`).
 
-The headers are separated by '-' and the file name is separated for the functions with ':'. Each function must end with ';'.
+The headers are separated by '-' and the file name is separated of the functions, macros and types with ':'. Each function, macro and type must end with ';'.
 
-You don't need to write the parenthesis, just the name of the function.
-
-### macros.conf file
-Same as the functions.conf file.
-
-### types.conf file
-Same as the functions.conf file.
+For the functions you must not include the parenthesis nor the type, only the name.

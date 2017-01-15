@@ -14,7 +14,8 @@ import sys
 import os
 import re
 
-configFile = "general.conf"
+configFile = os.path.expanduser("~") + "/bin/settings/general.conf"
+localConfFile = "auto_head.conf"
 version = "0.4.2"
 
 class colors:
@@ -98,9 +99,9 @@ cregExceptions = re.compile("(\"(.*?)\")|(\/\*(.*?)(\*\/))|(\/\/.*$)", re.M|re.S
 
 # Config
 output = "include/"
-includeFile = "functions.conf"
-macroFile = "macros.conf"
-typeFile = "types.conf"
+includeFile = os.path.expanduser("~") + "/bin/settings/functions.conf"
+macroFile = os.path.expanduser("~") + "/bin/settings/macros.conf"
+typeFile = os.path.expanduser("~") + "/bin/settings/types.conf"
 binaryName = "a.out"
 bLetArgNames = 0
 bIncludeHeader = 1
@@ -119,8 +120,29 @@ functions = []
 functionNames = []
 usedFuncsMacsPerFile = {}
 includes = {}
-macros = {}
-types = {}
+
+def openConfFile(confFile):
+    if quiet == 0:
+        print ("Opening \"" + colors.CYAN + confFile + colors.DEFAULT + "\"", end="")
+        if verbose == 1:
+            print()
+    try:
+        config = open(confFile, "r")
+        data = config.read()
+        config.close()
+        data = cregSpaces.sub("", data)
+        sepInc = data.split("-")
+        for inc in sepInc:
+            inc = inc.split(":")
+            if verbose == 1:
+                printPink("\tFound \"" + inc[0] + "\"")
+            if inc[0] in includes:
+                includes[inc[0]] += inc[1]
+            else:
+                includes[inc[0]] = inc[1]
+        showOk()
+    except:
+        showError()
 
 def createMakefile():
     try:
@@ -149,6 +171,7 @@ def readConfig(): # Analyse the config file
     global output
     global includeFile
     global macroFile
+    global typeFile
     global bIncludeHeader
     global lineHeader
     global bDoMakefile
@@ -167,11 +190,11 @@ def readConfig(): # Analyse the config file
                 if inc[0] == "output":
                     output = inc[1]
                 elif inc[0] == "funcDictionnary":
-                    includeFile = inc[1]
+                    includeFile = inc[1].replace("~", os.path.expanduser("~"))
                 elif inc[0] == "macrDictionnary":
-                    macroFile = inc[1]
+                    macroFile = inc[1].replace("~", os.path.expanduser("~"))
                 elif inc[0] == "typeDictionnary":
-                    typeFile = inc[1]
+                    typeFile = inc[1].replace("~", os.path.expanduser("~"))
                 elif inc[0] == "include":
                     bIncludeHeader = int(inc[1])
                 elif inc[0] == "includeLine":
@@ -357,69 +380,18 @@ else:
 showOk()
 
 # Open conf files
-if quiet == 0:
-    print ("Opening \"" + colors.CYAN + includeFile + colors.DEFAULT + "\"", end="")
-    if verbose == 1:
-        print()
-try:
-    config = open(includeFile, "r")
-    data = config.read()
-    config.close()
-    data = cregSpaces.sub("", data)
-    sepInc = data.split("-")
-    for inc in sepInc:
-        inc = inc.split(":")
-        if verbose == 1:
-            printPink("\tFound \"" + inc[0] + "\"")
-        includes[inc[0]] = inc[1]
-    showOk()
-except:
-    showError()
-if quiet == 0:
-    print ("Opening \"" + colors.CYAN + macroFile + colors.DEFAULT + "\"", end="")
-    if verbose == 1:
-        print()
-try:
-    config = open(macroFile, "r")
-    data = config.read()
-    config.close()
-    data = cregSpaces.sub("", data)
-    sepInc = data.split("-")
-    for inc in sepInc:
-        inc = inc.split(":")
-        if verbose == 1:
-            printPink("\tFound \"" + inc[0] + "\"")
-        macros[inc[0]] = inc[1]
-    showOk()
-except:
-    showError()
-
-if quiet == 0:
-    print ("Opening \"" + colors.CYAN + typeFile + colors.DEFAULT + "\"", end="")
-    if verbose == 1:
-        print()
-try:
-    config = open(typeFile, "r")
-    data = config.read()
-    config.close()
-    data = cregSpaces.sub("", data)
-    sepInc = data.split("-")
-    for inc in sepInc:
-        inc = inc.split(":")
-        if verbose == 1:
-            printPink("\tFound \"" + inc[0] + "\"")
-        types[inc[0]] = inc[1]
-    showOk()
-except:
-    showError()
+openConfFile(includeFile)
+openConfFile(macroFile)
+openConfFile(typeFile)
+if os.path.isfile(localConfFile):
+    openConfFile(localConfFile)
 
 if quiet == 0:
     print (colors.BLUE + "\n------------------------------")
     print ("---Start of header creation---")
     print ("------------------------------\n" + colors.DEFAULT)
 
-if onefile == "":
-    # Create headers
+if onefile == "": # Create one header for each c file
     for fileName, funcs in usedFuncsMacsPerFile.items():
         if funcs:
             tempName = output + fileName.split("/")[-1].replace(".c", ".h")
@@ -436,16 +408,6 @@ if onefile == "":
                     if not func in functionNames:
                         found = 0
                         for key, value in includes.items():
-                            if func in value.split(";"):
-                                found = 1
-                                if key != "void":
-                                    neededIncludes.append(key)
-                        for key, value in macros.items():
-                            if func in value.split(";"):
-                                found = 1
-                                if key != "void":
-                                    neededIncludes.append(key)
-                        for key, value in types.items():
                             if func in value.split(";"):
                                 found = 1
                                 if key != "void":
@@ -476,8 +438,7 @@ if onefile == "":
                 showOk()
             except:
                 showError()
-else:
-    # Create only one header
+else: # Create only one header for all c files
     neededIncludes = []
     try:
         file = open(output + onefile, "w")
@@ -493,16 +454,6 @@ else:
                     if not func in functionNames:
                         found = 0
                         for key, value in includes.items():
-                            if func in value.split(";"):
-                                found = 1
-                                if key != "void":
-                                    neededIncludes.append(key)
-                        for key, value in macros.items():
-                            if func in value.split(";"):
-                                found = 1
-                                if key != "void":
-                                    neededIncludes.append(key)
-                        for key, value in types.items():
                             if func in value.split(";"):
                                 found = 1
                                 if key != "void":
