@@ -23,6 +23,7 @@ class colors:
     RED = "\033[91m"
     BLUE = "\033[34m"
     CYAN = "\033[96m"
+    PINK = "\033[95m"
     BOLD = "\033[1m"
     UNDERLINE = "\033[4m"
     DEFAULT = "\033[0m"
@@ -36,10 +37,13 @@ def error_file(name):
     print (colors.RED + "Error while opening the file: \"" + name + "\"" + colors.DEFAULT)
 
 def showOk():
-    print (colors.GREEN + " -> Ok" + colors.DEFAULT)
+    if quiet == 0:
+        if verbose == 0:
+            print (colors.GREEN + " -> Ok" + colors.DEFAULT)
 
 def showError():
-    print (colors.YELLOW + " -> Error" + colors.DEFAULT)
+    if quiet == 0:
+        print (colors.YELLOW + " -> Error" + colors.DEFAULT)
 
 def printRed(text):
     print (colors.RED + text + colors.DEFAULT)
@@ -52,6 +56,9 @@ def printBlue(text):
 
 def printYellow(text):
     print (colors.YELLOW + text + colors.DEFAULT)
+
+def printPink(text):
+    print (colors.PINK + text + colors.DEFAULT)
 
 def showHeader():
     os.system("clear")
@@ -70,11 +77,7 @@ def showHeader():
     print (" ####                     " + colors.BLUE + "v. " + version + colors.DEFAULT + "                     #### ")
     print ("    ###########                               ###########    ")
     print ("              ###########           ###########              ")
-    print ("                        #############                        ")
-
-# Check arguments
-if len(sys.argv) < 2:
-    error_args()
+    print ("                        #############                        \n")
 
 # Regexes
 regFunFull = "^[A-Za-z0-9_]+[ \t\*]+[A-Za-z0-9_]+\(([A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*,[ \*\n\t]*)*([A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*)?\)$"
@@ -98,7 +101,12 @@ bIncludeHeader = 1
 bDoMakefile = 1
 lineHeader = 10
 
+# Flags
+quiet = 0
+verbose = 0
+
 # Arrays
+flags = []
 functions = []
 functionNames = []
 usedFuncsMacsPerFile = {}
@@ -186,6 +194,8 @@ def addFunction(function): # Add the function to the dictionnary array of known 
     function = cregSpaces.sub(" ", function)
     functions.append(function)
     name = function.split(" ")[1].split("(")[0].replace("*", "")
+    if verbose == 1:
+        printPink("\t\tFound function declaration: " + name)
     functionNames.append(name)
     return (name)
 
@@ -201,7 +211,8 @@ def alignFunctions():
         functions[i] = cregSpace.sub(" " * (maxLen - length), func, 1)
 
 def analizeFile(fileName):
-    print ("\tAnalysing \"" + fileName + "\"", end="")
+    if quiet == 0:
+        print ("\tAnalysing \"" + colors.CYAN + fileName + colors.DEFAULT + "\"", end="")
     try:
         file = open(fileName, "r")
         data = file.read()
@@ -210,18 +221,30 @@ def analizeFile(fileName):
         showError()
         return
     data = cregExceptions.sub("", data)
+    if verbose == 1:
+        print ()
     localDefinedFuncs = []
     for function in re.finditer(regFunFull, data, re.M):
         localDefinedFuncs.append(addFunction(function.group()))
     localUsedFuncs = []
     for function in re.finditer(regFunCalled, data, re.M):
-        localUsedFuncs.append(function.group().replace("(", ""))
+        name = function.group().replace("(", "")
+        if not name in localUsedFuncs:
+            if verbose == 1:
+                printPink("\t\tFound used function: " + name)
+            localUsedFuncs.append(name)
     for macro in re.finditer(regMacro, data, re.M): # Macro handling (yes I know i need to clean this)
         macro = macro.group()[1:-1]
-        localUsedFuncs.append(macro)
+        if not macro in localUsedFuncs:
+            if verbose == 1:
+                printPink("\t\tFound used macro: " + macro)
+            localUsedFuncs.append(macro)
     for variable in re.finditer(regVariable, data, re.M): # Variable type handling (same as ^^^^)
         variable = variable.group().split(" ")[0].split("\t")[0]
-        localUsedFuncs.append(variable)
+        if not variable in localUsedFuncs:
+            if verbose == 1:
+                printPink("\t\tFound used variable type: " + variable)
+            localUsedFuncs.append(variable)
     localUsedFuncs = list(set(localUsedFuncs))
     for function in localDefinedFuncs:
         localUsedFuncs.remove(function)
@@ -253,27 +276,60 @@ def addDblIncSec(file, name):
 
 readConfig()
 
-showHeader()
-print (colors.GREEN + "\n-----------------------")
-print ("---Start of analyzis---")
-print ("-----------------------" + colors.DEFAULT)
-fileNames = iter(sys.argv)
-next(fileNames)
-for fileName in fileNames:
+args = sys.argv[1:]
+tempArgs = list(args)
+for arg in tempArgs:
+    if arg[0] == '-':
+        flags.append(arg[1:])
+        args.remove(arg)
+
+# Check arguments
+if len(args) < 1:
+    error_args()
+
+# Check flags && apply them
+for flag in flags:
+    flag = flag.split(":")
+    if flag[0] == "q":
+        quiet = 1
+    elif flag[0] == "v":
+        verbose = 1
+    else:
+        printRed("Unrecognised flag \"" + flag[0] + "\"")
+        sys.exit(84)
+
+if quiet == 0:
+    showHeader()
+
+if quiet == 0:
+    print (colors.BLUE + "\n-----------------------")
+    print ("---Start of analyzis---")
+    print ("-----------------------\n" + colors.DEFAULT)
+for fileName in args:
     if (fileName.endswith(".c")):
         analizeFile(fileName)
-print (colors.GREEN + "\n-----------------------")
-print ("--- End of analyzis ---")
-print ("-----------------------\n" + colors.DEFAULT)
+if quiet == 0:
+    print (colors.BLUE + "\n-----------------------")
+    print ("--- End of analyzis ---")
+    print ("-----------------------\n" + colors.DEFAULT)
 
 alignFunctions()
-print ("Creating the output folder", end="")
+if quiet == 0:
+    print ("Creating the output folder", end="")
 if not os.path.exists(output):
     os.makedirs(output)
+    if verbose == 1:
+        printPink("\n\tOutput folder \"" + output + "\" created")
+else:
+    if verbose == 1:
+        printPink("\n\tOutput folder \"" + output + "\" existing already")
 showOk()
 
 # Open conf files
-print ("Opening \"" + includeFile + "\"", end="")
+if quiet == 0:
+    print ("Opening \"" + colors.CYAN + includeFile + colors.DEFAULT + "\"", end="")
+    if verbose == 1:
+        print()
 try:
     config = open(includeFile, "r")
     data = config.read()
@@ -282,11 +338,16 @@ try:
     sepInc = data.split("-")
     for inc in sepInc:
         inc = inc.split(":")
+        if verbose == 1:
+            printPink("\tFound \"" + inc[0] + "\"")
         includes[inc[0]] = inc[1]
     showOk()
 except:
     showError()
-print ("Opening \"" + macroFile + "\"", end="")
+if quiet == 0:
+    print ("Opening \"" + colors.CYAN + macroFile + colors.DEFAULT + "\"", end="")
+    if verbose == 1:
+        print()
 try:
     config = open(macroFile, "r")
     data = config.read()
@@ -295,11 +356,16 @@ try:
     sepInc = data.split("-")
     for inc in sepInc:
         inc = inc.split(":")
+        if verbose == 1:
+            printPink("\tFound \"" + inc[0] + "\"")
         macros[inc[0]] = inc[1]
     showOk()
 except:
     showError()
-print ("Opening \"" + typeFile + "\"", end="")
+if quiet == 0:
+    print ("Opening \"" + colors.CYAN + typeFile + colors.DEFAULT + "\"", end="")
+    if verbose == 1:
+        print()
 try:
     config = open(typeFile, "r")
     data = config.read()
@@ -308,19 +374,25 @@ try:
     sepInc = data.split("-")
     for inc in sepInc:
         inc = inc.split(":")
+        if verbose == 1:
+            printPink("\tFound \"" + inc[0] + "\"")
         types[inc[0]] = inc[1]
     showOk()
 except:
     showError()
 
-print (colors.GREEN + "\n------------------------------")
-print ("---Start of header creation---")
-print ("------------------------------" + colors.DEFAULT)
+if quiet == 0:
+    print (colors.BLUE + "\n------------------------------")
+    print ("---Start of header creation---")
+    print ("------------------------------\n" + colors.DEFAULT)
 # Create headers
 for fileName, funcs in usedFuncsMacsPerFile.items():
     if funcs:
         tempName = output + fileName.split("/")[-1].replace(".c", ".h")
-        print ("\tCreating \"" + tempName + "\"", end="")
+        if quiet == 0:
+            print ("\tCreating \"" + colors.CYAN + tempName + colors.DEFAULT + "\"", end="")
+            if verbose == 1:
+                print()
         try:
             file = open(tempName, "w")
             addDblIncSec(file, tempName)
@@ -343,35 +415,44 @@ for fileName, funcs in usedFuncsMacsPerFile.items():
                             found = 1
                             if key != "void":
                                 neededIncludes.append(key)
-                    if found == 0:
-                        print (colors.YELLOW + "Warning: function, macro or type \"" + func + "\" not found in the config file" + colors.DEFAULT)
+                    if (found == 0 & quiet == 0):
+                        print (colors.YELLOW + "\n\t\t-> Warning: \"" + colors.RED  + func + colors.YELLOW + "\" not found in the config file nor in others c files" + colors.DEFAULT, end="")
             neededIncludes = list(set(neededIncludes))
             for inc in neededIncludes:
                 if inc[0] != '!':
                     file.write("#  include <" + inc + ">\n")
+                    if verbose == 1:
+                        printPink("\t\tIncluding \"" + inc + "\"")
             for inc in neededIncludes:
                 if inc[0] == '!':
                     file.write("#  include \"" + inc[1:] + "\"\n")
+                    if verbose == 1:
+                        printPink("\t\tIncluding \"" + inc[1:] + "\"")
             if neededIncludes:
                 file.write("\n")
             for func in funcs:
                 if func in functionNames:
                     file.write(functions[functionNames.index(func)] + ";\n")
+                    if verbose == 1:
+                        printPink("\t\tPrototyping \"" + func + "\"")
             file.write("\n#endif")
             file.close()
             showOk()
         except:
             showError()
-print (colors.GREEN + "\n------------------------------")
-print ("--- End of header creation ---")
-print ("------------------------------\n" + colors.DEFAULT)
+if quiet == 0:
+    print (colors.BLUE + "\n------------------------------")
+    print ("--- End of header creation ---")
+    print ("------------------------------\n" + colors.DEFAULT)
 
 if bDoMakefile == 1:
-    print ("Creating the Makefile", end="")
+    if quiet == 0:
+        print ("Creating the Makefile", end="")
     createMakefile()
 
-print (colors.GREEN)
-print ("--------")
-print ("- DONE -")
-print ("--------")
-print (colors.DEFAULT)
+if quiet == 0:
+    print (colors.GREEN)
+    print ("--------")
+    print ("- DONE -")
+    print ("--------")
+    print (colors.DEFAULT)
