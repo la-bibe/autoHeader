@@ -101,7 +101,7 @@ cregArgNameComma = re.compile("[ ]*[A-Za-z0-9_]+,")
 cregArgNamePar = re.compile("[ ]*[A-Za-z0-9_]+\)")
 cregSpaces = re.compile("[ \n\t]+")
 cregSpace = re.compile(" ")
-cregExceptions = re.compile("(\"(.*?)\")|(\/\*(.*?)(\*\/))|(\/\/.*$)", re.M|re.S)
+cregExceptions = re.compile("(\"(.*?)\")|(\'(.*?)\')|(\/\*(.*?)(\*\/))|(\/\/.*$)", re.M|re.S)
 
 # Config
 output = "include/"
@@ -319,7 +319,6 @@ def addDblIncSec(file, name):
     name = name.split("/")[-1].upper().replace(".", "_") + "_"
     file.write("#ifndef " + name + "\n" + "#  define " + name + "\n\n")
 
-
 def createHeaderFile(name, includeArray, functionArray):
     file = open(name, "w")
     addHeader(file)
@@ -344,151 +343,152 @@ def createHeaderFile(name, includeArray, functionArray):
     file.write("\n#endif")
     file.close()
 
-readConfig()
+if __name__ == '__main__':
+    readConfig()
 
-args = sys.argv[1:]
-tempArgs = list(args)
-for arg in tempArgs:
-    if arg[0] == '-':
-        flags.append(arg[1:])
-        args.remove(arg)
+    args = sys.argv[1:]
+    tempArgs = list(args)
+    for arg in tempArgs:
+        if arg[0] == '-':
+            flags.append(arg[1:])
+            args.remove(arg)
 
-# Check arguments
-if len(args) < 1:
-    error_args()
+    # Check arguments
+    if len(args) < 1:
+        error_args()
 
-# Check flags && apply them
-for flag in flags:
-    flag = flag.split(":")
-    if flag[0] == "q":
-        quiet = 1
-    elif flag[0] == "v":
-        verbose = 1
-    elif flag[0] == "M":
-        bDoMakefile = 1
-    elif flag[0] == "m":
-        bDoMakefile = 0
-    elif flag[0] == "o" and len(flag) == 2:
-        output = flag[1]
-    elif flag[0] == "b" and len(flag) == 2:
-        binaryName = flag[1]
-    elif flag[0] == "l" and len(flag) == 2:
-        libs = flag[1]
-    elif flag[0] == "onefile" and len(flag) == 2:
-        onefile = flag[1]
+    # Check flags && apply them
+    for flag in flags:
+        flag = flag.split(":")
+        if flag[0] == "q":
+            quiet = 1
+        elif flag[0] == "v":
+            verbose = 1
+        elif flag[0] == "M":
+            bDoMakefile = 1
+        elif flag[0] == "m":
+            bDoMakefile = 0
+        elif flag[0] == "o" and len(flag) == 2:
+            output = flag[1]
+        elif flag[0] == "b" and len(flag) == 2:
+            binaryName = flag[1]
+        elif flag[0] == "l" and len(flag) == 2:
+            libs = flag[1]
+        elif flag[0] == "onefile" and len(flag) == 2:
+            onefile = flag[1]
+        else:
+            printRed("Unrecognised flag \"" + flag[0] + "\"")
+            sys.exit(84)
+
+    if quiet == 1:
+        verbose = 0
+
+    if quiet == 0:
+        showHeader()
+
+    if quiet == 0:
+        print (colors.BLUE + "\n-----------------------")
+        print ("---Start of analyzis---")
+        print ("-----------------------\n" + colors.DEFAULT)
+    for fileName in args:
+        if (fileName.endswith(".c")):
+            analizeFile(fileName)
+    if quiet == 0:
+        print (colors.BLUE + "\n-----------------------")
+        print ("--- End of analyzis ---")
+        print ("-----------------------\n" + colors.DEFAULT)
+
+    alignFunctions()
+    if quiet == 0:
+        print ("Creating the output folder", end="")
+    if not os.path.exists(output):
+        os.makedirs(output)
+        if verbose == 1:
+            printPink("\n\tOutput folder \"" + output + "\" created")
     else:
-        printRed("Unrecognised flag \"" + flag[0] + "\"")
-        sys.exit(84)
+        if verbose == 1:
+            printPink("\n\tOutput folder \"" + output + "\" existing already")
+    showOk()
 
-if quiet == 1:
-    verbose = 0
+    # Open conf files
+    openConfFile(includeFile)
+    openConfFile(macroFile)
+    openConfFile(typeFile)
+    if os.path.isfile(localConfFile):
+        openConfFile(localConfFile)
 
-if quiet == 0:
-    showHeader()
+    if quiet == 0:
+        print (colors.BLUE + "\n------------------------------")
+        print ("---Start of header creation---")
+        print ("------------------------------\n" + colors.DEFAULT)
 
-if quiet == 0:
-    print (colors.BLUE + "\n-----------------------")
-    print ("---Start of analyzis---")
-    print ("-----------------------\n" + colors.DEFAULT)
-for fileName in args:
-    if (fileName.endswith(".c")):
-        analizeFile(fileName)
-if quiet == 0:
-    print (colors.BLUE + "\n-----------------------")
-    print ("--- End of analyzis ---")
-    print ("-----------------------\n" + colors.DEFAULT)
-
-alignFunctions()
-if quiet == 0:
-    print ("Creating the output folder", end="")
-if not os.path.exists(output):
-    os.makedirs(output)
-    if verbose == 1:
-        printPink("\n\tOutput folder \"" + output + "\" created")
-else:
-    if verbose == 1:
-        printPink("\n\tOutput folder \"" + output + "\" existing already")
-showOk()
-
-# Open conf files
-openConfFile(includeFile)
-openConfFile(macroFile)
-openConfFile(typeFile)
-if os.path.isfile(localConfFile):
-    openConfFile(localConfFile)
-
-if quiet == 0:
-    print (colors.BLUE + "\n------------------------------")
-    print ("---Start of header creation---")
-    print ("------------------------------\n" + colors.DEFAULT)
-
-if onefile == "": # Create one header for each c file
-    for fileName, funcs in usedFuncsMacsPerFile.items():
-        if funcs:
-            tempName = output + fileName.split("/")[-1].replace(".c", ".h")
-            if quiet == 0:
-                print ("\tCreating \"" + colors.CYAN + tempName + colors.DEFAULT + "\"", end="")
-                if verbose == 1:
-                    print()
-            try:
-                neededIncludes = []
-                for func in funcs:
-                    if not func in functionNames:
-                        found = 0
-                        for key, value in includes.items():
-                            if func in value.split(";"):
-                                found = 1
-                                if key != "void":
-                                    neededIncludes.append(key)
-                        if found == 0:
-                            if quiet == 0:
-                                print (colors.YELLOW + "\n\t\t-> Warning: \"" + colors.RED  + func + colors.YELLOW + "\" not found in the config file nor in others c files" + colors.DEFAULT)
-                neededIncludes = list(set(neededIncludes))
-                createHeaderFile(tempName, neededIncludes, funcs)
-                showOk()
-            except:
-                showError()
-else: # Create only one header for all c files
-    neededIncludes = []
-    try:
-        if quiet == 0:
-            print ("\tCreating \"" + colors.CYAN + onefile + colors.DEFAULT + "\"", end="")
-            if verbose == 1:
-                print()
+    if onefile == "": # Create one header for each c file
         for fileName, funcs in usedFuncsMacsPerFile.items():
             if funcs:
-                for func in funcs:
-                    if not func in functionNames:
-                        found = 0
-                        for key, value in includes.items():
-                            if func in value.split(";"):
-                                found = 1
-                                if key != "void":
-                                    neededIncludes.append(key)
-                        if found == 0:
-                            if quiet == 0:
-                                print (colors.YELLOW + "\n\t\t-> Warning: \"" + colors.RED  + func + colors.YELLOW + "\" not found in the config file nor in others c files" + colors.DEFAULT)
-        neededIncludes = list(set(neededIncludes))
-        createHeaderFile(output + onefile, neededIncludes, functionNames)
-        showOk()
-    except:
-        showError()
+                tempName = output + fileName.split("/")[-1].replace(".c", ".h")
+                if quiet == 0:
+                    print ("\tCreating \"" + colors.CYAN + tempName + colors.DEFAULT + "\"", end="")
+                    if verbose == 1:
+                        print()
+                try:
+                    neededIncludes = []
+                    for func in funcs:
+                        if not func in functionNames:
+                            found = 0
+                            for key, value in includes.items():
+                                if func in value.split(";"):
+                                    found = 1
+                                    if key != "void":
+                                        neededIncludes.append(key)
+                            if found == 0:
+                                if quiet == 0:
+                                    print (colors.YELLOW + "\n\t\t-> Warning: \"" + colors.RED  + func + colors.YELLOW + "\" not found in the config file nor in others c files" + colors.DEFAULT)
+                    neededIncludes = list(set(neededIncludes))
+                    createHeaderFile(tempName, neededIncludes, funcs)
+                    showOk()
+                except:
+                    showError()
+    else: # Create only one header for all c files
+        neededIncludes = []
+        try:
+            if quiet == 0:
+                print ("\tCreating \"" + colors.CYAN + onefile + colors.DEFAULT + "\"", end="")
+                if verbose == 1:
+                    print()
+            for fileName, funcs in usedFuncsMacsPerFile.items():
+                if funcs:
+                    for func in funcs:
+                        if not func in functionNames:
+                            found = 0
+                            for key, value in includes.items():
+                                if func in value.split(";"):
+                                    found = 1
+                                    if key != "void":
+                                        neededIncludes.append(key)
+                            if found == 0:
+                                if quiet == 0:
+                                    print (colors.YELLOW + "\n\t\t-> Warning: \"" + colors.RED  + func + colors.YELLOW + "\" not found in the config file nor in others c files" + colors.DEFAULT)
+            neededIncludes = list(set(neededIncludes))
+            createHeaderFile(output + onefile, neededIncludes, functionNames)
+            showOk()
+        except:
+            showError()
 
-if quiet == 0:
-    print (colors.BLUE + "\n------------------------------")
-    print ("--- End of header creation ---")
-    print ("------------------------------\n" + colors.DEFAULT)
-
-if bDoMakefile == 1:
     if quiet == 0:
-        print ("Creating the Makefile", end="")
-        if verbose == 1:
-            print ()
-    createMakefile()
+        print (colors.BLUE + "\n------------------------------")
+        print ("--- End of header creation ---")
+        print ("------------------------------\n" + colors.DEFAULT)
 
-if quiet == 0:
-    print (colors.GREEN)
-    print ("--------")
-    print ("- DONE -")
-    print ("--------")
-    print (colors.DEFAULT)
+    if bDoMakefile == 1:
+        if quiet == 0:
+            print ("Creating the Makefile", end="")
+            if verbose == 1:
+                print ()
+        createMakefile()
+
+    if quiet == 0:
+        print (colors.GREEN)
+        print ("--------")
+        print ("- DONE -")
+        print ("--------")
+        print (colors.DEFAULT)

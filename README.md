@@ -63,7 +63,7 @@ in auto_header.py. It should be near to the top of the file.
 
 ### Other configuration files
 
-By default the program will look at the three files function.conf, macros.conf and types.conf in the folder ~/bin/settings but this can be changed in the general.conf file. The program will also check if there is a file auto_header.conf in the folder where it is executed, if so it will load it as well.
+By default the program will look at the three files function.conf, macros.conf and types.conf in the folder ~/bin/settings but this can be changed in the general.conf file. The program will also check if there is a file `auto_head.conf` in the folder where it is executed, if so it will load it as well.
 
 Theorically you should put all the general functions, types and macros in the configuration files in the ~/bin/settings folder and the functions, types and macros specific to your project in the auto_header.conf file.
 
