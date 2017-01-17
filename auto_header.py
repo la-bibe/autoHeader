@@ -19,7 +19,7 @@ localConfFile = "auto_head.conf"
 version = "0.4.2"
 
 # Regexes
-regFunFull = "^[A-Za-z0-9_]+[ \t\*]+[A-Za-z0-9_]+\(([A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*,[ \*\n\t]*)*([A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*)?\)$"
+regFunFull = "^[A-Za-z0-9_]+[ \t\*]+[A-Za-z0-9_]+\((([A-Za-z0-9_]*[ ]*)?[A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*,[ \*\n\t]*)*(([A-Za-z0-9_]*[ ]*)?[A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*)?\)$"
 regFunCalled = "[A-Za-z0-9_]+\("
 regMacro = "[^A-Za-z0-9_][A-Z0-9_]*[A-Z]+[A-Z0-9_]*[^A-Za-z0-9_]"
 regVariable = "[A-Za-z0-9_]+\**[ \t]+\**[A-Za-z0-9_]+"
