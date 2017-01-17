@@ -12,5 +12,7 @@ fi
 echo "Copying the files"
 cp autoHeader/includes/* ~/bin/autoHeader/includes/
 cp autoHeader/general.conf ~/bin/autoHeader/
+cp autoHeader/makefileHeader ~/bin/autoHeader/
+cp autoHeader/headerHeader ~/bin/autoHeader/
 cp auto_header.py ~/bin/
 echo "Done, restart the bash"

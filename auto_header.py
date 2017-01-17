@@ -15,6 +15,7 @@ import os
 import re
 
 configFile = os.path.expanduser("~") + "/bin/autoHeader/general.conf"
+globalFolder = os.path.expanduser("~") + "/bin/autoHeader/"
 localConfFile = "auto_head.conf"
 version = "0.4.2"
 
@@ -22,7 +23,7 @@ version = "0.4.2"
 regFunFull = "^[A-Za-z0-9_]+[ \t\*]+[A-Za-z0-9_]+\((([A-Za-z0-9_]*[ ]*)?[A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*,[ \*\n\t]*)*(([A-Za-z0-9_]*[ ]*)?[A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*)?\)$"
 regFunCalled = "[A-Za-z0-9_]+\("
 regMacro = "[^A-Za-z0-9_][A-Z0-9_]*[A-Z]+[A-Z0-9_]*[^A-Za-z0-9_]"
-regVariable = "[A-Za-z0-9_]+\**[ \t]+\**[A-Za-z0-9_]+"
+regVariable = "(struct )?[A-Za-z0-9_]+\**[ \t]+\**[A-Za-z0-9_]+"
 cregArgNameComma = re.compile("[ ]*[A-Za-z0-9_]+,")
 cregArgNamePar = re.compile("[ ]*[A-Za-z0-9_]+\)")
 cregSpaces = re.compile("[ \n\t]+")
@@ -54,6 +55,20 @@ functionNames = []
 usedFuncsMacsPerFile = {}
 includes = {}
 # /Arrays
+
+headerHeader = """/*********************************************\\
+|*   Header created by AutoHeader v. """ + version + """   *|
+|* https://github.com/FantinBibas/autoHeader *|
+\\*********************************************/
+
+"""
+
+makefileHeader = """## /*********************************************\\
+## |*  Makefile created by AutoHeader v. """ + version + """  *|
+## |* https://github.com/FantinBibas/autoHeader *|
+## \\*********************************************/
+
+"""
 
 class colors:
     GREEN = "\033[92m"
@@ -98,17 +113,27 @@ def printYellow(text):
 def printPink(text):
     print (colors.PINK + text + colors.DEFAULT)
 
+def loadHeaderMak():
+    fileName = globalFolder + "makefileHeader"
+    global makefileHeader
+    if os.path.isfile(fileName):
+        file = open(fileName, "r")
+        makefileHeader = file.read().replace("#version#", version) + "\n"
+        file.close()
+
+def loadHeaderHea():
+    fileName = globalFolder + "headerHeader"
+    global headerHeader
+    if os.path.isfile(fileName):
+        file = open(fileName, "r")
+        headerHeader = file.read().replace("#version#", version) + "\n"
+        file.close()
+
 def addHeader(file):
-    file.write("/*********************************************\\\n")
-    file.write("|*   Header created by AutoHeader v. " + version + "   *|\n")
-    file.write("|* https://github.com/FantinBibas/autoHeader *|\n")
-    file.write("\\*********************************************/\n\n")
+    file.write(headerHeader)
 
 def addMakefileHeader(file):
-    file.write("## /*********************************************\\\n")
-    file.write("## |*  Makefile created by AutoHeader v. " + version + "  *|\n")
-    file.write("## |* https://github.com/FantinBibas/autoHeader *|\n")
-    file.write("## \\*********************************************/\n\n")
+    file.write(makefileHeader)
 
 def showHeader():
     os.system("clear")
@@ -431,6 +456,9 @@ if __name__ == '__main__': # Main
 
     if os.path.isfile(localConfFile):
         openConfFile(localConfFile, 1) # Load local config file
+
+    loadHeaderMak()
+    loadHeaderHea()
 
     if quiet == 0: # Start of header
         print (colors.BLUE + "\n------------------------------")
