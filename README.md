@@ -59,6 +59,9 @@ in auto_header.py. It should be close to the top of the file.
 - `makefile:1` : 0 or 1, if it's 1 the program will create a Makefile with the files passed as parameter and including the headers.
 - `binary:a.out` : Name of the output binary for the Makefile.
 - `argNames:0` : 0 or 1, if it's 0 it will remove the name of the parameters in the prototypes in the headers.
+- `company:GitHub` : Define the company value. Used in the flags for the headers.
+- `author:Neodar` : Define the author value. Used in the flags for the headers.
+- `mail:fantin@bib.as` : Define the mail value. Used in the flags for the headers.
 
 ### auto_head.conf file
 
@@ -84,7 +87,12 @@ Theorically you should put all the general functions, types and macros in the co
 
 The files `headerHeader` and `makefileHeader` can define the Header you want for the header files and the Makefiles. They are placed int the folder ~/bin/autoHeader/. You can use the following flags in the text:
 - `#version#` : replaced by the version of the autoHeader.
-(more to come)
+- `#output#` : replaced by the folder of the headers.
+- `#binary#` : replaced by the name of the binary of the Makefile.
+- `#date#` : replaced by the date of the execution (in format yyyy-mm-dd).
+- `#author#` : replaced by the author (defined in general.conf).
+- `#mail#` : replaced by the mail (defined in general.conf).
+- `#company#` : replaced by the company (defined in general.conf).
 
 #### Syntax of the configuration files
 

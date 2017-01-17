@@ -13,6 +13,7 @@
 import sys
 import os
 import re
+import datetime
 
 configFile = os.path.expanduser("~") + "/bin/autoHeader/general.conf"
 globalFolder = os.path.expanduser("~") + "/bin/autoHeader/"
@@ -47,6 +48,13 @@ verbose = 0
 onefile = ""
 libs = ""
 # /Flags
+
+# Infos
+author = "Fantin Bibas"
+authorMail = "fantin@bib.as"
+company = "Epitech"
+date = str(datetime.date.today())
+# /Infos
 
 # Arrays
 flags = []
@@ -113,21 +121,33 @@ def printYellow(text):
 def printPink(text):
     print (colors.PINK + text + colors.DEFAULT)
 
+def replaceHeaderFlags(text):
+    text = text.replace("#version#", version)
+    text = text.replace("#output#", output)
+    text = text.replace("#binary#", binaryName)
+    text = text.replace("#date#", date)
+    text = text.replace("#author#", author)
+    text = text.replace("#mail#", authorMail)
+    text = text.replace("#company#", company)
+    return (text)
+
 def loadHeaderMak():
     fileName = globalFolder + "makefileHeader"
     global makefileHeader
     if os.path.isfile(fileName):
         file = open(fileName, "r")
-        makefileHeader = file.read().replace("#version#", version) + "\n"
+        makefileHeader = file.read() + "\n"
         file.close()
+        makefileHeader = replaceHeaderFlags(makefileHeader)
 
 def loadHeaderHea():
     fileName = globalFolder + "headerHeader"
     global headerHeader
     if os.path.isfile(fileName):
         file = open(fileName, "r")
-        headerHeader = file.read().replace("#version#", version) + "\n"
+        headerHeader = file.read() + "\n"
         file.close()
+        headerHeader = replaceHeaderFlags(headerHeader)
 
 def addHeader(file):
     file.write(headerHeader)
@@ -255,6 +275,9 @@ def readConfig(): # Analyse the config file
     global binaryName
     global bLetArgNames
     global libs
+    global author
+    global authorMail
+    global company
     try:
         config = open(configFile, "r")
         data = config.read()
@@ -278,6 +301,12 @@ def readConfig(): # Analyse the config file
                     binaryName = inc[1]
                 elif inc[0] == "argNames":
                     bLetArgNames = int(inc[1])
+                elif inc[0] == "author":
+                    author = inc[1]
+                elif inc[0] == "mail":
+                    authorMail = inc[1]
+                elif inc[0] == "company":
+                    company = inc[1]
     except:
         try:
             config = open(configFile, "w")
