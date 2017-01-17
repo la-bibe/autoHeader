@@ -14,9 +14,46 @@ import sys
 import os
 import re
 
-configFile = os.path.expanduser("~") + "/bin/settings/general.conf"
+configFile = os.path.expanduser("~") + "/bin/autoHeader/general.conf"
 localConfFile = "auto_head.conf"
 version = "0.4.2"
+
+# Regexes
+regFunFull = "^[A-Za-z0-9_]+[ \t\*]+[A-Za-z0-9_]+\(([A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*,[ \*\n\t]*)*([A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*)?\)$"
+regFunCalled = "[A-Za-z0-9_]+\("
+regMacro = "[^A-Za-z0-9_][A-Z0-9_]*[A-Z]+[A-Z0-9_]*[^A-Za-z0-9_]"
+regVariable = "[A-Za-z0-9_]+\**[ \t]+\**[A-Za-z0-9_]+"
+cregArgNameComma = re.compile("[ ]*[A-Za-z0-9_]+,")
+cregArgNamePar = re.compile("[ ]*[A-Za-z0-9_]+\)")
+cregSpaces = re.compile("[ \n\t]+")
+cregSpace = re.compile(" ")
+cregExceptions = re.compile("(\"(.*?)\")|(\'(.*?)\')|(\/\*(.*?)(\*\/))|(\/\/.*$)", re.M|re.S)
+# /Regexes
+
+# Config
+output = "include/"
+includeDir = os.path.expanduser("~") + "/bin/autoHeader/includes/"
+binaryName = "a.out"
+bLetArgNames = 0
+bIncludeHeader = 1
+bDoMakefile = 1
+lineHeader = 10
+# /Config
+
+# Flags
+quiet = 0
+verbose = 0
+onefile = ""
+libs = ""
+# /Flags
+
+# Arrays
+flags = []
+functions = []
+functionNames = []
+usedFuncsMacsPerFile = {}
+includes = {}
+# /Arrays
 
 class colors:
     GREEN = "\033[92m"
@@ -92,42 +129,45 @@ def showHeader():
     print ("              ###########           ###########              ")
     print ("                        #############                        \n")
 
-# Regexes
-regFunFull = "^[A-Za-z0-9_]+[ \t\*]+[A-Za-z0-9_]+\(([A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*,[ \*\n\t]*)*([A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*)?\)$"
-regFunCalled = "[A-Za-z0-9_]+\("
-regMacro = "[^A-Za-z0-9_][A-Z0-9_]*[A-Z]+[A-Z0-9_]*[^A-Za-z0-9_]"
-regVariable = "[A-Za-z0-9_]+\**[ \t]+\**[A-Za-z0-9_]+"
-cregArgNameComma = re.compile("[ ]*[A-Za-z0-9_]+,")
-cregArgNamePar = re.compile("[ ]*[A-Za-z0-9_]+\)")
-cregSpaces = re.compile("[ \n\t]+")
-cregSpace = re.compile(" ")
-cregExceptions = re.compile("(\"(.*?)\")|(\'(.*?)\')|(\/\*(.*?)(\*\/))|(\/\/.*$)", re.M|re.S)
+def analyseFlag(flag):
+    global quiet
+    global verbose
+    global bDoMakefile
+    global output
+    global binaryName
+    global libs
+    global onefile
+    flag = flag.split(":")
+    if flag[0] == "q":
+        quiet = 1
+    elif flag[0] == "v":
+        verbose = 1
+    elif flag[0] == "M":
+        bDoMakefile = 1
+    elif flag[0] == "m":
+        bDoMakefile = 0
+    elif flag[0] == "o" and len(flag) == 2:
+        output = flag[1]
+    elif flag[0] == "b" and len(flag) == 2:
+        binaryName = flag[1]
+    elif flag[0] == "l" and len(flag) == 2:
+        libs = flag[1]
+    elif flag[0] == "onefile" and len(flag) == 2:
+        onefile = flag[1]
+    else:
+        printRed("Unrecognised flag \"" + flag[0] + "\"")
+        sys.exit(84)
+    if quiet == 1:
+        verbose = 0
 
-# Config
-output = "include/"
-includeFile = os.path.expanduser("~") + "/bin/settings/functions.conf"
-macroFile = os.path.expanduser("~") + "/bin/settings/macros.conf"
-typeFile = os.path.expanduser("~") + "/bin/settings/types.conf"
-binaryName = "a.out"
-bLetArgNames = 0
-bIncludeHeader = 1
-bDoMakefile = 1
-lineHeader = 10
+def analyseLocal(data):
+    data = data.replace("\n", "")
+    data = data.split(";")
+    for flag in data:
+        if flag != "":
+            analyseFlag(flag)
 
-# Flags
-quiet = 0
-verbose = 0
-onefile = ""
-libs = ""
-
-# Arrays
-flags = []
-functions = []
-functionNames = []
-usedFuncsMacsPerFile = {}
-includes = {}
-
-def openConfFile(confFile):
+def openConfFile(confFile, local):
     if quiet == 0:
         print ("Opening \"" + colors.CYAN + confFile + colors.DEFAULT + "\"", end="")
         if verbose == 1:
@@ -136,6 +176,11 @@ def openConfFile(confFile):
         config = open(confFile, "r")
         data = config.read()
         config.close()
+        if local == 1:
+            data = data.split("==")
+            if len(data) == 2:
+                analyseLocal(data[0])
+                data = data[1]
         data = cregSpaces.sub("", data)
         sepInc = data.split("-")
         for inc in sepInc:
@@ -176,7 +221,7 @@ def createMakefile():
 
 def readConfig(): # Analyse the config file
     global output
-    global includeFile
+    global includeDir
     global macroFile
     global typeFile
     global bIncludeHeader
@@ -196,12 +241,8 @@ def readConfig(): # Analyse the config file
             if len(inc) == 2:
                 if inc[0] == "output":
                     output = inc[1]
-                elif inc[0] == "funcDictionnary":
-                    includeFile = inc[1].replace("~", os.path.expanduser("~"))
-                elif inc[0] == "macrDictionnary":
-                    macroFile = inc[1].replace("~", os.path.expanduser("~"))
-                elif inc[0] == "typeDictionnary":
-                    typeFile = inc[1].replace("~", os.path.expanduser("~"))
+                elif inc[0] == "globalIncludeFolder":
+                    includeDir = inc[1].replace("~", os.path.expanduser("~"))
                 elif inc[0] == "include":
                     bIncludeHeader = int(inc[1])
                 elif inc[0] == "includeLine":
@@ -216,9 +257,7 @@ def readConfig(): # Analyse the config file
         try:
             config = open(configFile, "w")
             config.write("output:" + output + ";\n")
-            config.write("funcDictionnary:" + includeFile + ";\n")
-            config.write("macrDictionnary:" + macroFile + ";\n")
-            config.write("typeDictionnary:" + typeFile + ";\n")
+            config.write("globalIncludeFolder:" + includeDir + ";\n")
             config.write("include:" + str(bIncludeHeader) + ";\n")
             config.write("includeLine:" + str(lineHeader) + ";\n")
             config.write("makefile:" + str(bDoMakefile) + ";\n")
@@ -343,7 +382,7 @@ def createHeaderFile(name, includeArray, functionArray):
     file.write("\n#endif")
     file.close()
 
-if __name__ == '__main__':
+if __name__ == '__main__': # Main
     readConfig()
 
     args = sys.argv[1:]
@@ -351,40 +390,16 @@ if __name__ == '__main__':
     for arg in tempArgs:
         if arg[0] == '-':
             flags.append(arg[1:])
-            args.remove(arg)
+            args.remove(arg) # Parse arguments
 
-    # Check arguments
-    if len(args) < 1:
+    if len(args) < 1: # Check arguments number
         error_args()
 
-    # Check flags && apply them
-    for flag in flags:
-        flag = flag.split(":")
-        if flag[0] == "q":
-            quiet = 1
-        elif flag[0] == "v":
-            verbose = 1
-        elif flag[0] == "M":
-            bDoMakefile = 1
-        elif flag[0] == "m":
-            bDoMakefile = 0
-        elif flag[0] == "o" and len(flag) == 2:
-            output = flag[1]
-        elif flag[0] == "b" and len(flag) == 2:
-            binaryName = flag[1]
-        elif flag[0] == "l" and len(flag) == 2:
-            libs = flag[1]
-        elif flag[0] == "onefile" and len(flag) == 2:
-            onefile = flag[1]
-        else:
-            printRed("Unrecognised flag \"" + flag[0] + "\"")
-            sys.exit(84)
-
-    if quiet == 1:
-        verbose = 0
+    for flag in flags: # Flags handler
+        analyseFlag(flag)
 
     if quiet == 0:
-        showHeader()
+        showHeader() # Header
 
     if quiet == 0:
         print (colors.BLUE + "\n-----------------------")
@@ -410,14 +425,14 @@ if __name__ == '__main__':
             printPink("\n\tOutput folder \"" + output + "\" existing already")
     showOk()
 
-    # Open conf files
-    openConfFile(includeFile)
-    openConfFile(macroFile)
-    openConfFile(typeFile)
-    if os.path.isfile(localConfFile):
-        openConfFile(localConfFile)
+    for root, dirs, files in os.walk(includeDir): # Load global config files
+        for file in files:
+            openConfFile(os.path.join(root, file), 0)
 
-    if quiet == 0:
+    if os.path.isfile(localConfFile):
+        openConfFile(localConfFile, 1) # Load local config file
+
+    if quiet == 0: # Start of header
         print (colors.BLUE + "\n------------------------------")
         print ("---Start of header creation---")
         print ("------------------------------\n" + colors.DEFAULT)
@@ -474,19 +489,19 @@ if __name__ == '__main__':
         except:
             showError()
 
-    if quiet == 0:
+    if quiet == 0: # End of header
         print (colors.BLUE + "\n------------------------------")
         print ("--- End of header creation ---")
         print ("------------------------------\n" + colors.DEFAULT)
 
-    if bDoMakefile == 1:
+    if bDoMakefile == 1: # Creation of Makefile
         if quiet == 0:
             print ("Creating the Makefile", end="")
             if verbose == 1:
                 print ()
         createMakefile()
 
-    if quiet == 0:
+    if quiet == 0: # Done
         print (colors.GREEN)
         print ("--------")
         print ("- DONE -")
