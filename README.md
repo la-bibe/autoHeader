@@ -2,13 +2,13 @@
 
 ### Description
 
-AutoHeader is a little Python program that helps the creation of a C project.
+AutoHeader is a python program that automatically does the boring task of prototyping the functions, including the necessary libraries for each C file and making the Makefile.
 
 It can create header files adapted to every c file you pass in parameter with:
 - The prototypes of the functions found in the other files by analysing which ones are used
 - The header files needed by analysing what functions, macros, structs and typedef are used based on the configuration files.
 
-It can also automatically create a Makefile.
+It's totally customizable and will quickly become a must for you.
 
 ### Table of content
 
@@ -21,12 +21,14 @@ It can also automatically create a Makefile.
 	- [auto_head.conf file](#auto_headconf-file)
 	- [Other configuration files](#other-configuration-files)
 	- [Syntax of the configuration files](#syntax-of-the-configuration-files)
+- [Contributing](#contributing)
+- [Known bugs](#known-bugs)
 
 ### Installation
 
-To install it just launch the install.sh script:
-
-`./install.sh`
+To install AutoHeader you just need to run `./install.sh`.
+This will place the auto_header.py file and the autoHeader folder in the ~/bin/ folder.
+You will have to add this folder to your PATH if you want to call the program just by running `auto_header.py`.
 
 ### Usage
 
@@ -41,6 +43,7 @@ You can also use the following flags:
 - "-M" : Create a Makefile
 - "-m" : Do not create a Makefile
 - "onefile:file.h" : Create only one header file which contains the necessary includes for all files and all found prototypes
+- "obj:objs/": set the folder for the objs files
 
 ### Configuration files
 
@@ -62,6 +65,7 @@ in auto_header.py. It should be close to the top of the file.
 - `company:GitHub` : Define the company value. Used in the flags for the headers.
 - `author:Neodar` : Define the author value. Used in the flags for the headers.
 - `mail:fantin@bib.as` : Define the mail value. Used in the flags for the headers.
+- `objdir:objs/` : Define the folder for the objs files
 
 ### auto_head.conf file
 
@@ -116,6 +120,13 @@ For the functions you must not include the parenthesis nor the type, only the na
 
 You can use void as header file to not include anything for the associated function, macro or type.
 
+## Contributing
 
+Any contribution is welcome. The priority is to list all the functions, types and macros of the GLibC in the configuration files.
+
+## Known bugs
+
+- Can't handle function pointers
+- Doesn't handle single line comments
 
 #### Enjoy ! :)

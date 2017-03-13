@@ -18,7 +18,7 @@ import datetime
 configFile = os.path.expanduser("~") + "/bin/autoHeader/general.conf"
 globalFolder = os.path.expanduser("~") + "/bin/autoHeader/"
 localConfFile = "auto_head.conf"
-version = "0.4.2"
+version = "0.5.2"
 
 # Regexes
 regFunFull = "^[A-Za-z0-9_]+[ \t\*]+[A-Za-z0-9_]+\((([A-Za-z0-9_]*[ ]*)?[A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*,[ \*\n\t]*)*(([A-Za-z0-9_]*[ ]*)?[A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*)?\)$"
@@ -29,11 +29,12 @@ cregArgNameComma = re.compile("[ ]*[A-Za-z0-9_]+,")
 cregArgNamePar = re.compile("[ ]*[A-Za-z0-9_]+\)")
 cregSpaces = re.compile("[ \n\t]+")
 cregSpace = re.compile(" ")
-cregExceptions = re.compile("(\"(.*?)\")|(\'(.*?)\')|(\/\*(.*?)(\*\/))|(\/\/.*$)", re.M|re.S)
+cregExceptions = re.compile("(\"(.*?)\")|(\'(.*?)\')|(\/\*(.*?)(\*\/))", re.M|re.S)
 # /Regexes
 
 # Config
 output = "include/"
+objDir = "objs/"
 includeDir = os.path.expanduser("~") + "/bin/autoHeader/includes/"
 binaryName = "a.out"
 bLetArgNames = 0
@@ -182,6 +183,7 @@ def analyseFlag(flag):
     global binaryName
     global libs
     global onefile
+    global objDir
     flag = flag.split(":")
     if flag[0] == "q":
         quiet = 1
@@ -197,6 +199,8 @@ def analyseFlag(flag):
         binaryName = flag[1]
     elif flag[0] == "l" and len(flag) == 2:
         libs = flag[1]
+    elif flag[0] == "obj" and len(flag) == 2:
+        objDir = flag[1]
     elif flag[0] == "onefile" and len(flag) == 2:
         onefile = flag[1]
     else:
@@ -253,7 +257,12 @@ def createMakefile():
         for fileName in sorted(usedFuncsMacsPerFile.keys())[:-1]:
             makefile.write(fileName + "\t\\\n\t\t")
         makefile.write(sorted(usedFuncsMacsPerFile.keys())[-1] + "\n\n")
-        makefile.write("OBJS\t=\t$(SRCS:.c=.o)\n\n")
+        makefile.write("OBJDIR\t=\t" + objDir + "\n\n")
+        if (objDir != ""):
+            makefile.write("OBJS\t=\t$(SRCS:%.c=$(OBJDIR)/%.o)\n\n")
+        else:
+            makefile.write("OBJS\t=\t$(SRCS:.c=.o)\n\n")
+        makefile.write("$(OBJDIR)/%.o:\t%.c\n\tmkdir -p $(OBJDIR)\n\t$(CC) -v $< -o $@ $(CPPFLAGS)\n\n")
         makefile.write("all:\t$(NAME)\n\n$(NAME):\t$(OBJS)\n\t$(CC) $(OBJS) -o $(NAME) $(FLAGS)\n\n")
         makefile.write("clean:\n\t$(RM) $(OBJS)\n\n")
         makefile.write("fclean:\tclean\n\t$(RM) $(NAME)\n\n")
@@ -278,6 +287,7 @@ def readConfig(): # Analyse the config file
     global author
     global authorMail
     global company
+    global objDir
     try:
         config = open(configFile, "r")
         data = config.read()
@@ -307,6 +317,8 @@ def readConfig(): # Analyse the config file
                     authorMail = inc[1]
                 elif inc[0] == "company":
                     company = inc[1]
+                elif inc[0] == "objdir":
+                    objDir = inc[1]
     except:
         try:
             config = open(configFile, "w")
