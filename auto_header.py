@@ -262,7 +262,7 @@ def createMakefile():
             makefile.write("OBJS\t=\t$(SRCS:%.c=$(OBJDIR)/%.o)\n\n")
         else:
             makefile.write("OBJS\t=\t$(SRCS:.c=.o)\n\n")
-        makefile.write("$(OBJDIR)/%.o:\t%.c\n\tmkdir -p $(OBJDIR)\n\t$(CC) -v $< -o $@ $(CPPFLAGS)\n\n")
+        makefile.write("$(OBJDIR)/%.o:\t%.c\n\tmkdir -p $(OBJDIR)\n\tmkdir -p $(@D)\n\t$(CC) -c $< -o $@ $(CPPFLAGS)\n\n")
         makefile.write("all:\t$(NAME)\n\n$(NAME):\t$(OBJS)\n\t$(CC) $(OBJS) -o $(NAME) $(FLAGS)\n\n")
         makefile.write("clean:\n\t$(RM) $(OBJS)\n\n")
         makefile.write("fclean:\tclean\n\t$(RM) $(NAME)\n\n")
