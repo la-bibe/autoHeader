@@ -126,7 +126,7 @@ Any contribution is welcome. The priority is to list all the functions, types an
 
 ## Known bugs
 
-- Can't handle function pointers
+- Can't handle function pointers (Update: can now handle the USE of function pointer, not in prototypes for example but only as an affectation)
 - Doesn't handle single line comments
 
 #### Enjoy ! :)

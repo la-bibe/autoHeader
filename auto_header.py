@@ -25,6 +25,7 @@ regFunFull = "^[A-Za-z0-9_]+[ \t\*]+[A-Za-z0-9_]+\((([A-Za-z0-9_]*[ ]*)?[A-Za-z0
 regFunCalled = "[A-Za-z0-9_]+\("
 regMacro = "[^A-Za-z0-9_][A-Z0-9_]*[A-Z]+[A-Z0-9_]*[^A-Za-z0-9_]"
 regVariable = "(struct )?[A-Za-z0-9_]+\**[ \t]+\**[A-Za-z0-9_]+"
+regWord = "[A-Za-z0-9_]+"
 cregArgNameComma = re.compile("[ ]*[A-Za-z0-9_]+,")
 cregArgNamePar = re.compile("[ ]*[A-Za-z0-9_]+\)")
 cregSpaces = re.compile("[ \n\t]+")
@@ -62,6 +63,7 @@ flags = []
 functions = []
 functionNames = []
 usedFuncsMacsPerFile = {}
+wordsPerFile = {}
 includes = {}
 # /Arrays
 
@@ -393,10 +395,17 @@ def analizeFile(fileName):
             if verbose == 1:
                 printPink("\t\tFound used variable type: " + variable)
             localUsedFuncs.append(variable)
+    localWords = []
+    for word in re.finditer(regWord, data, re.M):
+        name = word.group()
+        if not name in localWords:
+            localWords.append(name)
+    localWords = list(set(localWords))
     localUsedFuncs = list(set(localUsedFuncs))
     for function in localDefinedFuncs:
         localUsedFuncs.remove(function)
-    usedFuncsMacsPerFile[fileName] = localUsedFuncs
+        localWords.remove(function)
+    usedFuncsMacsPerFile[fileName] = (localUsedFuncs, localWords)
     if bIncludeHeader == 1:
         try:
             file = open(fileName, "r")
@@ -445,6 +454,7 @@ def createHeaderFile(name, includeArray, functionArray):
             file.write(functions[functionNames.index(func)] + ";\n")
             if verbose == 1:
                 printPink("\t\tPrototyping \"" + func + "\"")
+    #HERE
     file.write("\n#endif")
     file.close()
 
@@ -479,6 +489,31 @@ if __name__ == '__main__': # Main
         print ("--- End of analyzis ---")
         print ("-----------------------\n" + colors.DEFAULT)
 
+
+    if quiet == 0:
+        print (colors.BLUE + "\n---------------------------------------")
+        print ("--- Searching for function pointers ---")
+        print ("---------------------------------------\n" + colors.DEFAULT)
+    for fileName, pair in usedFuncsMacsPerFile.items():
+        funcs = pair[0]
+        words = pair[1]
+        if quiet == 0:
+            print ("Searching in \"" + colors.CYAN + fileName + colors.DEFAULT + "\"", end="")
+        if verbose == 1:
+            print()
+        if words:
+            for word in words:
+                if word in functionNames and not word in funcs:
+                    funcs.append(word)
+                    if verbose == 1:
+                        printPink("\t\tPossible function pointer: " + word)
+        showOk()
+
+    if quiet == 0:
+        print (colors.BLUE + "\n-----------------------")
+        print ("--- End of research ---")
+        print ("-----------------------\n" + colors.DEFAULT)
+
     alignFunctions()
     if quiet == 0:
         print ("Creating the output folder", end="")
@@ -507,7 +542,8 @@ if __name__ == '__main__': # Main
         print ("------------------------------\n" + colors.DEFAULT)
 
     if onefile == "": # Create one header for each c file
-        for fileName, funcs in usedFuncsMacsPerFile.items():
+        for fileName, pair in usedFuncsMacsPerFile.items():
+            funcs = pair[0]
             if funcs:
                 tempName = output + fileName.split("/")[-1].replace(".c", ".h")
                 if quiet == 0:
@@ -539,7 +575,8 @@ if __name__ == '__main__': # Main
                 print ("\tCreating \"" + colors.CYAN + onefile + colors.DEFAULT + "\"", end="")
                 if verbose == 1:
                     print()
-            for fileName, funcs in usedFuncsMacsPerFile.items():
+            for fileName, pair in usedFuncsMacsPerFile.items():
+                funcs = pair[0]
                 if funcs:
                     for func in funcs:
                         if not func in functionNames:
