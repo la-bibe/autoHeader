@@ -42,6 +42,9 @@ You can also use the following flags:
 - "-l:-lm" : Set the libs for the Makefile
 - "-M" : Create a Makefile
 - "-m" : Do not create a Makefile
+- "-h:plop.h" : Only create an empty header file (with header and protection against multiple inclusion)
+- "-r" : Recursive mode, will look in all subfolders for c files
+- "-files:file1.c src/*.c" : Set the c files to analyse (useful for config files)
 - "onefile:file.h" : Create only one header file which contains the necessary includes for all files and all found prototypes
 - "obj:objs/": set the folder for the objs files
 

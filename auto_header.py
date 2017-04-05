@@ -14,11 +14,13 @@ import sys
 import os
 import re
 import datetime
+import glob
 
 configFile = os.path.expanduser("~") + "/bin/autoHeader/general.conf"
 globalFolder = os.path.expanduser("~") + "/bin/autoHeader/"
 localConfFile = "auto_head.conf"
-version = "0.5.2"
+version = "0.5.8"
+pathnames = []
 
 # Regexes
 regFunFull = "^[A-Za-z0-9_]+[ \t\*]+[A-Za-z0-9_]+\((([A-Za-z0-9_]*[ ]*)?[A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*,[ \*\n\t]*)*(([A-Za-z0-9_]*[ ]*)?[A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*)?\)$"
@@ -49,6 +51,9 @@ quiet = 0
 verbose = 0
 onefile = ""
 libs = ""
+recur = False
+cfiles = []
+createHeader = ""
 # /Flags
 
 # Infos
@@ -186,7 +191,10 @@ def analyseFlag(flag):
     global libs
     global onefile
     global objDir
+    global recur
+    global pathnames
     flag = flag.split(":")
+    global createHeader
     if flag[0] == "q":
         quiet = 1
     elif flag[0] == "v":
@@ -195,18 +203,26 @@ def analyseFlag(flag):
         bDoMakefile = 1
     elif flag[0] == "m":
         bDoMakefile = 0
+    elif flag[0] == "r":
+        recur = True
     elif flag[0] == "o" and len(flag) == 2:
         output = flag[1]
     elif flag[0] == "b" and len(flag) == 2:
         binaryName = flag[1]
     elif flag[0] == "l" and len(flag) == 2:
         libs = flag[1]
+    elif flag[0] == "files" and len(flag) == 2:
+        pathnames.extend(flag[1].split(" "))
     elif flag[0] == "obj" and len(flag) == 2:
         objDir = flag[1]
     elif flag[0] == "onefile" and len(flag) == 2:
         onefile = flag[1]
+    elif flag[0] == "h" and len(flag) == 2:
+        createHeader = flag[1]
+
     else:
         printRed("Unrecognised flag \"" + flag[0] + "\"")
+        print(flag)
         sys.exit(84)
     if quiet == 1:
         verbose = 0
@@ -454,13 +470,11 @@ def createHeaderFile(name, includeArray, functionArray):
             file.write(functions[functionNames.index(func)] + ";\n")
             if verbose == 1:
                 printPink("\t\tPrototyping \"" + func + "\"")
-    #HERE
     file.write("\n#endif")
     file.close()
 
 if __name__ == '__main__': # Main
     readConfig()
-
     args = sys.argv[1:]
     tempArgs = list(args)
     for arg in tempArgs:
@@ -468,22 +482,50 @@ if __name__ == '__main__': # Main
             flags.append(arg[1:])
             args.remove(arg) # Parse arguments
 
-    if len(args) < 1: # Check arguments number
-        error_args()
-
     for flag in flags: # Flags handler
         analyseFlag(flag)
 
     if quiet == 0:
         showHeader() # Header
 
+    pathnames.extend(args)
+
+    for root, dirs, files in os.walk(includeDir): # Load global config files
+        for file in files:
+            openConfFile(os.path.join(root, file), 0)
+
+    if os.path.isfile(localConfFile):
+        openConfFile(localConfFile, 1) # Load local config file
+
+    if createHeader != "":
+        createHeaderFile(createHeader, [], [])
+        sys.exit(0)
+
+    if len(pathnames) < 1 and not recur:
+        error_args()
+
     if quiet == 0:
         print (colors.BLUE + "\n-----------------------")
         print ("---Start of analyzis---")
         print ("-----------------------\n" + colors.DEFAULT)
-    for fileName in args:
-        if (fileName.endswith(".c")):
-            analizeFile(fileName)
+
+    if len(pathnames) == 0:
+        pathnames.append(".")
+
+    for fileName in pathnames:
+        if recur:
+            if fileName.endswith("/"):
+                fileName += "**/*"
+            elif fileName.endswith("."):
+                fileName += "/**/*"
+        for cfile in glob.glob(fileName, recursive=recur):
+            #print("Debug: " + cfile + " recursive: " + str(recur))
+            if (cfile.endswith(".c")):
+                cfiles.append(cfile)
+
+    for cfile in cfiles:
+        analizeFile(cfile)
+
     if quiet == 0:
         print (colors.BLUE + "\n-----------------------")
         print ("--- End of analyzis ---")
@@ -498,7 +540,7 @@ if __name__ == '__main__': # Main
         funcs = pair[0]
         words = pair[1]
         if quiet == 0:
-            print ("Searching in \"" + colors.CYAN + fileName + colors.DEFAULT + "\"", end="")
+            print ("\tSearching in \"" + colors.CYAN + fileName + colors.DEFAULT + "\"", end="")
         if verbose == 1:
             print()
         if words:
@@ -525,13 +567,6 @@ if __name__ == '__main__': # Main
         if verbose == 1:
             printPink("\n\tOutput folder \"" + output + "\" existing already")
     showOk()
-
-    for root, dirs, files in os.walk(includeDir): # Load global config files
-        for file in files:
-            openConfFile(os.path.join(root, file), 0)
-
-    if os.path.isfile(localConfFile):
-        openConfFile(localConfFile, 1) # Load local config file
 
     loadHeaderMak()
     loadHeaderHea()
