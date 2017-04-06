@@ -19,13 +19,15 @@ import glob
 configFile = os.path.expanduser("~") + "/bin/autoHeader/general.conf"
 globalFolder = os.path.expanduser("~") + "/bin/autoHeader/"
 localConfFile = "auto_head.conf"
-version = "0.5.8"
+version = "0.6.0"
 pathnames = []
 
 # Regexes
 regFunPtrProto = "[A-Za-z0-9_]+[ \t\*]+\((\*)*[A-Za-z0-9_]+\)\((([A-Za-z0-9_]*[ ]*)?[A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*,[ \*\n\t]*)*(([A-Za-z0-9_]*[ ]*)?[A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*)?\)"
 regFunFull = "^[A-Za-z0-9_]+[ \t\*]+[A-Za-z0-9_]+\(((([A-Za-z0-9_]*[ ]*)?[A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*,[ \*\n\t]*)|(" + regFunPtrProto + "))*((([A-Za-z0-9_]*[ ]*)?[A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*)|(" + regFunPtrProto + "))?\)$"
 regFunCalled = "[A-Za-z0-9_]+\("
+regFunPtrName = "\((\*)*[A-Za-z0-9_]+\)"
+regFunCalledPtr = "(\.[A-Za-z0-9_]+\()|(->[A-Za-z0-9_]+\()"
 regMacro = "[^A-Za-z0-9_][A-Z0-9_]*[A-Z]+[A-Z0-9_]*[^A-Za-z0-9_]"
 regVariable = "(struct )?[A-Za-z0-9_]+\**[ \t]+\**[A-Za-z0-9_]+"
 regWord = "[A-Za-z0-9_]+"
@@ -392,8 +394,10 @@ def analizeFile(fileName):
     if verbose == 1:
         print ()
     localDefinedFuncs = []
+    localDefinedFuncsFull = []
     for function in re.finditer(regFunFull, data, re.M):
         localDefinedFuncs.append(addFunction(function.group()))
+        localDefinedFuncsFull.append(function.group())
     localUsedFuncs = []
     for function in re.finditer(regFunCalled, data, re.M):
         name = function.group().replace("(", "")
@@ -401,6 +405,14 @@ def analizeFile(fileName):
             if verbose == 1:
                 printPink("\t\tFound used function: " + name)
             localUsedFuncs.append(name)
+    for function in re.finditer(regFunCalledPtr, data, re.M):
+        name = function.group().replace("(", "")
+        name = name.replace(".", "")
+        name = name.replace("->", "")
+        if name in localUsedFuncs:
+            if verbose == 1:
+                printPink("\t\tFunction: " + name + " is an alias (I think)")
+            localUsedFuncs.remove(name)
     for macro in re.finditer(regMacro, data, re.M): # Macro handling (yes I know i need to clean this)
         macro = macro.group()[1:-1]
         if not macro in localUsedFuncs:
@@ -423,6 +435,13 @@ def analizeFile(fileName):
     for function in localDefinedFuncs:
         localUsedFuncs.remove(function)
         localWords.remove(function)
+    for function in localDefinedFuncsFull:
+        for viciousFuncName in re.finditer(regFunPtrName, function, re.M):
+            name = viciousFuncName.group().replace("*", "").replace("(", "").replace(")", "")
+            if name in localUsedFuncs:
+                localUsedFuncs.remove(name)
+            if name in localWords:
+                localWords.remove(name)
     usedFuncsMacsPerFile[fileName] = (localUsedFuncs, localWords)
     if bIncludeHeader == 1:
         try:

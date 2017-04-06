@@ -129,7 +129,6 @@ Any contribution is welcome. The priority is to list all the functions, types an
 
 ## Known bugs
 
-- Can't handle use of function pointer in struct (like t_struct.function(...)), fixing this soon
 - Doesn't handle single line comments
 
 #### Enjoy ! :)
