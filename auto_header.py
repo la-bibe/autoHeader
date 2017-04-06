@@ -23,7 +23,8 @@ version = "0.5.8"
 pathnames = []
 
 # Regexes
-regFunFull = "^[A-Za-z0-9_]+[ \t\*]+[A-Za-z0-9_]+\((([A-Za-z0-9_]*[ ]*)?[A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*,[ \*\n\t]*)*(([A-Za-z0-9_]*[ ]*)?[A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*)?\)$"
+regFunPtrProto = "[A-Za-z0-9_]+[ \t\*]+\((\*)*[A-Za-z0-9_]+\)\((([A-Za-z0-9_]*[ ]*)?[A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*,[ \*\n\t]*)*(([A-Za-z0-9_]*[ ]*)?[A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*)?\)"
+regFunFull = "^[A-Za-z0-9_]+[ \t\*]+[A-Za-z0-9_]+\(((([A-Za-z0-9_]*[ ]*)?[A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*,[ \*\n\t]*)|(" + regFunPtrProto + "))*((([A-Za-z0-9_]*[ ]*)?[A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*)|(" + regFunPtrProto + "))?\)$"
 regFunCalled = "[A-Za-z0-9_]+\("
 regMacro = "[^A-Za-z0-9_][A-Z0-9_]*[A-Z]+[A-Z0-9_]*[^A-Za-z0-9_]"
 regVariable = "(struct )?[A-Za-z0-9_]+\**[ \t]+\**[A-Za-z0-9_]+"
@@ -33,6 +34,7 @@ cregArgNamePar = re.compile("[ ]*[A-Za-z0-9_]+\)")
 cregSpaces = re.compile("[ \n\t]+")
 cregSpace = re.compile(" ")
 cregExceptions = re.compile("(\"(.*?)\")|(\'(.*?)\')|(\/\*(.*?)(\*\/))", re.M|re.S)
+cregFunFullNp = re.compile("^[A-Za-z0-9_]+[ \t\*]+[A-Za-z0-9_]+\((([A-Za-z0-9_]*[ ]*)?[A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*,[ \*\n\t]*)*(([A-Za-z0-9_]*[ ]*)?[A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*)?\)$")
 # /Regexes
 
 # Config
@@ -354,7 +356,7 @@ def readConfig(): # Analyse the config file
 ##THE CAKE IS A LIE!!!!!##
 
 def addFunction(function): # Add the function to the dictionnary array of known functions
-    if bLetArgNames == 0:
+    if bLetArgNames == 0 and cregFunFullNp.match(function):
         function = cregArgNameComma.sub(",", function)
         function = cregArgNamePar.sub(")", function)
     function = cregSpaces.sub(" ", function)
