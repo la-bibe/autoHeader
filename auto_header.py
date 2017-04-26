@@ -272,7 +272,7 @@ def createMakefile():
         addMakefileHeader(makefile)
         makefile.write("CC\t=\tgcc\n\n")
         makefile.write("RM\t=\trm -f\n\n")
-        makefile.write("FLAGS\t+=\t-Wextra -Wall " + libs + "\n\n")
+        makefile.write("FLAGS\t+=\t" + libs + "\n\n")
         makefile.write("CPPFLAGS\t+=\t-I " + output + "\n\n")
         makefile.write("NAME\t=\t" + binaryName + "\n\n")
         makefile.write("SRCS\t=\t")
