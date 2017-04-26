@@ -29,7 +29,7 @@ regFunCalled = "[A-Za-z0-9_]+\("
 regFunPtrName = "\((\*)*[A-Za-z0-9_]+\)"
 regFunCalledPtr = "(\.[A-Za-z0-9_]+\()|(->[A-Za-z0-9_]+\()"
 regMacro = "[^A-Za-z0-9_][A-Z0-9_]*[A-Z]+[A-Z0-9_]*[^A-Za-z0-9_]"
-regVariable = "(struct )?[A-Za-z0-9_]+\**[ \t]+\**[A-Za-z0-9_]+"
+regVariable = "(struct )?[A-Za-z0-9_]+\**[ \t]+\**[A-Za-z0-9_]+|\((struct )?[A-Za-z0-9_]* *\**\)[A-Za-z0-9]"
 regWord = "[A-Za-z0-9_]+"
 cregArgNameComma = re.compile("[ ]*[A-Za-z0-9_]+,")
 cregArgNamePar = re.compile("[ ]*[A-Za-z0-9_]+\)")
@@ -421,6 +421,9 @@ def analizeFile(fileName):
             localUsedFuncs.append(macro)
     for variable in re.finditer(regVariable, data, re.M): # Variable type handling (same as ^^^^)
         variable = variable.group().split(" ")[0].split("\t")[0]
+        variable = variable.split(")")[0];
+        if (variable[:1] == "("):
+            variable = variable[1:]
         if not variable in localUsedFuncs:
             if verbose == 1:
                 printPink("\t\tFound used variable type: " + variable)
@@ -433,8 +436,10 @@ def analizeFile(fileName):
     localWords = list(set(localWords))
     localUsedFuncs = list(set(localUsedFuncs))
     for function in localDefinedFuncs:
-        localUsedFuncs.remove(function)
-        localWords.remove(function)
+        if function in localUsedFuncs:
+            localUsedFuncs.remove(function)
+        if function in localWords:
+            localWords.remove(function)
     for function in localDefinedFuncsFull:
         for viciousFuncName in re.finditer(regFunPtrName, function, re.M):
             name = viciousFuncName.group().replace("*", "").replace("(", "").replace(")", "")
