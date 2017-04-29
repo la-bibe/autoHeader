@@ -14,7 +14,7 @@ if ! grep "(load \"~/bin/autoHeader/autoheader-mode.el\")" ~/.emacs > /dev/null;
     echo "(load \"~/bin/autoHeader/autoheader-mode.el\")" >> ~/.emacs
 fi
 if ! grep "(add-to-list 'auto-mode-alist '(\"\\\\\\\\.conf\\\\\\\\'\" . autoheader-mode))" ~/.emacs > /dev/null; then
-    echo "(add-to-list 'auto-mode-alist '(\"\\\\.conf\\\\'\" . autoheader-mode))" >> ~/.emacs
+    echo "(add-to-list 'auto-mode-alist '(\"\\\\\.conf\\\\\'\" . autoheader-mode))" >> ~/.emacs
 fi
 cp autoheader-mode.el ~/bin/autoHeader/
 cp autoHeader/includes/* ~/bin/autoHeader/includes/
