@@ -5,16 +5,15 @@
         ("-?=?" . font-lock-keyword-face)
 	))
 
-(global-set-key (kbd "C-<down>") 'autoheader-move-next)
-(global-set-key (kbd "C-<up>") 'autoheader-move-prev)
-
-(defun autoheader-move-next ()
-  (interactive)
-  (re-search-forward "!?[_a-zA-Z0-9\.\/]*:$"))
-(defun autoheader-move-prev ()
-  (interactive)
-  (search-backward-regexp "!?[_a-zA-Z0-9\.\/]*:$"))
-
 (define-derived-mode autoheader-mode fundamental-mode "autoheader"
   "Major mode for editing .conf files."
+  (global-set-key (kbd "C-<down>") 'autoheader-mode-move-next)
+  (global-set-key (kbd "C-<up>") 'autoheader-mode-move-prev)
+
+  (defun autoheader-mode-move-next ()
+    (interactive)
+    (re-search-forward "!?[_a-zA-Z0-9\.\/]*:$"))
+  (defun autoheader-mode-move-prev ()
+    (interactive)
+    (search-backward-regexp "!?[_a-zA-Z0-9\.\/]*:$"))
   (setq font-lock-defaults '(autoheader-highlights)))
