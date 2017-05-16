@@ -39,9 +39,11 @@ You can also use the following flags:
 - "-q" : Quiet mode (overrides verbose mode)
 - "-o:include/" : Set the output folder for the headers
 - "-b:a.out" : Set the name of the binary for the Makefile
-- "-l:-lm" : Set the libs for the Makefile
+- "-l:-lm" | "-flags:-lm" : Set the flags for the Makefile
+- "-cppflags:-Wall" : Set the cppflags for the Makefile
 - "-M" : Create a Makefile
 - "-m" : Do not create a Makefile
+- "-m1" : Set the mode to 1 (delete header files instead of creating them)
 - "-h:plop.h" : Only create an empty header file (with header and protection against multiple inclusion)
 - "-r" : Recursive mode, will look in all subfolders for c files
 - "-files:file1.c src/*.c" : Set the c files to analyse (useful for config files)

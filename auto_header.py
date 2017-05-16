@@ -19,7 +19,7 @@ import glob
 configFile = os.path.expanduser("~") + "/bin/autoHeader/general.conf"
 globalFolder = os.path.expanduser("~") + "/bin/autoHeader/"
 localConfFile = "auto_head.conf"
-version = "0.6.0"
+version = "0.6.2"
 pathnames = []
 
 # Regexes
@@ -54,16 +54,18 @@ lineHeader = 10
 quiet = 0
 verbose = 0
 onefile = ""
-libs = ""
+mflags = ""
+cppflags = ""
 recur = False
 cfiles = []
 createHeader = ""
+mode = 0 # 0: normal - 1: clean header files - 2: 1 & remove include from c files (mode 2 not working)
 # /Flags
 
 # Infos
-author = "Fantin Bibas"
-authorMail = "fantin@bib.as"
-company = "Epitech"
+author = "John Smith"
+authorMail = "john.smith@gmail.com"
+company = "BBC"
 date = str(datetime.date.today())
 # /Infos
 
@@ -192,13 +194,15 @@ def analyseFlag(flag):
     global bDoMakefile
     global output
     global binaryName
-    global libs
+    global mflags
+    global cppflags
     global onefile
     global objDir
     global recur
     global pathnames
-    flag = flag.split(":")
     global createHeader
+    global mode
+    flag = flag.split(":")
     if flag[0] == "q":
         quiet = 1
     elif flag[0] == "v":
@@ -209,12 +213,20 @@ def analyseFlag(flag):
         bDoMakefile = 0
     elif flag[0] == "r":
         recur = True
+    elif flag[0] == "m0":
+        mode = 0
+    elif flag[0] == "m1":
+        mode = 1
+    elif flag[0] == "m2":
+        mode = 2
     elif flag[0] == "o" and len(flag) == 2:
         output = flag[1]
     elif flag[0] == "b" and len(flag) == 2:
         binaryName = flag[1]
-    elif flag[0] == "l" and len(flag) == 2:
-        libs = flag[1]
+    elif (flag[0] == "flags" or flag[0] == "l") and len(flag) == 2:
+        mflags = flag[1]
+    elif flag[0] == "cppflags" and len(flag) == 2:
+        cppflags = flag[1]
     elif flag[0] == "files" and len(flag) == 2:
         pathnames.extend(flag[1].split(" "))
     elif flag[0] == "obj" and len(flag) == 2:
@@ -272,8 +284,8 @@ def createMakefile():
         addMakefileHeader(makefile)
         makefile.write("CC\t=\tgcc\n\n")
         makefile.write("RM\t=\trm -f\n\n")
-        makefile.write("FLAGS\t+=\t" + libs + "\n\n")
-        makefile.write("CPPFLAGS\t+=\t-I " + output + "\n\n")
+        makefile.write("FLAGS\t+=\t" + mflags + "\n\n")
+        makefile.write("CPPFLAGS\t+=\t-I " + output + " " + cppflags + "\n\n")
         makefile.write("NAME\t=\t" + binaryName + "\n\n")
         makefile.write("SRCS\t=\t")
         for fileName in sorted(usedFuncsMacsPerFile.keys())[:-1]:
@@ -530,10 +542,14 @@ if __name__ == '__main__': # Main
     if len(pathnames) < 1 and not recur:
         error_args()
 
-    if quiet == 0:
+    if quiet == 0 and mode == 0:
         print (colors.BLUE + "\n-----------------------")
         print ("---Start of analyzis---")
         print ("-----------------------\n" + colors.DEFAULT)
+    elif quiet == 0:
+        print (colors.BLUE + "\n----------------------------------")
+        print ("---Start to delete header files---")
+        print ("----------------------------------\n" + colors.DEFAULT)
 
     if len(pathnames) == 0:
         pathnames.append(".")
@@ -550,7 +566,22 @@ if __name__ == '__main__': # Main
                 cfiles.append(cfile)
 
     for cfile in cfiles:
-        analizeFile(cfile)
+        if mode == 0:
+            analizeFile(cfile)
+        else:
+            tempName = output + cfile.split("/")[-1].replace(".c", ".h")
+            print ("\tTrying to remove \"" + colors.CYAN + tempName + colors.DEFAULT + "\"", end="")
+            try:
+                os.remove(tempName)
+                showOk()
+            except OSError:
+                showError()
+    if mode != 0:
+        if quiet == 0:
+            print (colors.BLUE + "\n-----------------------")
+            print ("--- End of deleting ---")
+            print ("-----------------------\n" + colors.DEFAULT)
+        sys.exit(0)
 
     if quiet == 0:
         print (colors.BLUE + "\n-----------------------")
