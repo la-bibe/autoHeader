@@ -19,24 +19,24 @@ import glob
 configFile = os.path.expanduser("~") + "/bin/autoHeader/general.conf"
 globalFolder = os.path.expanduser("~") + "/bin/autoHeader/"
 localConfFile = "auto_head.conf"
-version = "0.6.2"
+version = "0.6.3"
 pathnames = []
 
 # Regexes
-regFunPtrProto = "[A-Za-z0-9_]+[ \t\*]+\((\*)*[A-Za-z0-9_]+\)\((([A-Za-z0-9_]*[ ]*)?[A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*,[ \*\n\t]*)*(([A-Za-z0-9_]*[ ]*)?[A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*)?\)"
-regFunFull = "^[A-Za-z0-9_]+[ \t\*]+[A-Za-z0-9_]+\(((([A-Za-z0-9_]*[ ]*)?[A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*,[ \*\n\t]*)|(" + regFunPtrProto + "))*((([A-Za-z0-9_]*[ ]*)?[A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*)|(" + regFunPtrProto + "))?\)$"
+regFunPtrProto = "([A-Za-z0-9_]+[ \t\*]+)?[A-Za-z0-9_]+[ \t\*]+\((\*)*[A-Za-z0-9_]+\)\((([A-Za-z0-9_]*[ ]*)?[A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*([ \*\n\t]*__attribute__\(\([A-Za-z0-9_]+\)\))?,[ \*\n\t]*)*(([A-Za-z0-9_]*[ ]*)?[A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*([ \*\n\t]*__attribute__\(\([A-Za-z0-9_]+\)\))?)?\)"
+regFunFull = "^([A-Za-z0-9_]+[ \t\*]+)?[A-Za-z0-9_]+[ \t\*]+[A-Za-z0-9_]+\(((([A-Za-z0-9_]*[ ]*)?[A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*([ \*\n\t]*__attribute__\(\([A-Za-z0-9_]+\)\))?,[ \*\n\t]*)|(" + regFunPtrProto + "))*((([A-Za-z0-9_]*[ ]*)?[A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*)|(" + regFunPtrProto + "))?([ \*\n\t]*__attribute__\(\([A-Za-z0-9_]+\)\))?\)$"
 regFunCalled = "[A-Za-z0-9_]+\("
 regFunPtrName = "\((\*)*[A-Za-z0-9_]+\)"
 regFunCalledPtr = "(\.[A-Za-z0-9_]+\()|(->[A-Za-z0-9_]+\()"
 regMacro = "[^A-Za-z0-9_][A-Z0-9_]*[A-Z]+[A-Z0-9_]*[^A-Za-z0-9_]"
-regVariable = "(struct )?[A-Za-z0-9_]+\**[ \t]+\**[A-Za-z0-9_]+|\((struct )?[A-Za-z0-9_]* *\**\)[A-Za-z0-9]"
+regVariable = "([A-Za-z0-9_]+[ \t\*]+)?[A-Za-z0-9_]+\**[ \t]+\**[A-Za-z0-9_]+|\(([A-Za-z0-9_]+[ \t\*]+)?[A-Za-z0-9_]* *\**\)[A-Za-z0-9]"
 regWord = "[A-Za-z0-9_]+"
 cregArgNameComma = re.compile("[ ]*[A-Za-z0-9_]+,")
 cregArgNamePar = re.compile("[ ]*[A-Za-z0-9_]+\)")
 cregSpaces = re.compile("[ \n\t]+")
 cregSpace = re.compile(" ")
 cregExceptions = re.compile("(\"(.*?)\")|(\'(.*?)\')|(\/\*(.*?)(\*\/))", re.M|re.S)
-cregFunFullNp = re.compile("^[A-Za-z0-9_]+[ \t\*]+[A-Za-z0-9_]+\((([A-Za-z0-9_]*[ ]*)?[A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*,[ \*\n\t]*)*(([A-Za-z0-9_]*[ ]*)?[A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*)?\)$")
+cregFunFullNp = re.compile("^([A-Za-z0-9_]+[ \t\*]+)?[A-Za-z0-9_]+[ \t\*]+[A-Za-z0-9_]+\((([A-Za-z0-9_]*[ ]*)?[A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*([ \*\n\t]*__attribute__\(\([A-Za-z0-9_]+\)\))?,[ \*\n\t]*)*(([A-Za-z0-9_]*[ ]*)?[A-Za-z0-9_]*[ \*]*[A-Za-z0-9_\[\]]*)?([ \*\n\t]*__attribute__\(\([A-Za-z0-9_]+\)\))?\)$")
 # /Regexes
 
 # Config
@@ -375,7 +375,7 @@ def addFunction(function): # Add the function to the dictionnary array of known 
         function = cregArgNamePar.sub(")", function)
     function = cregSpaces.sub(" ", function)
     functions.append(function)
-    name = function.split(" ")[1].split("(")[0].replace("*", "")
+    name = function.split("(")[0].split(" ")[-1].replace("*", "")
     if verbose == 1:
         printPink("\t\tFound function declaration: " + name)
     functionNames.append(name)
